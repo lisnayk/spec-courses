@@ -89,29 +89,77 @@
     "p2023-s5-1": {
       "credits": 5,
       "label": "ВСС 1",
-      "options": [],
+      "options": [
+        {
+          "subject": "Візуальні мови програмування",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Візуалізація чисельних даних",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Засоби машинного навчання",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
       "order": 1,
       "plan": 2023,
       "sem": 5,
-      "status": "planned"
+      "status": "ok"
     },
     "p2023-s5-2": {
       "credits": 5,
       "label": "ВСС 2",
-      "options": [],
+      "options": [
+        {
+          "subject": "Комп'ютерна дискретна математика",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Мови програмування мобільних пристроїв",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Основи машинного навчання",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
       "order": 2,
       "plan": 2023,
       "sem": 5,
-      "status": "planned"
+      "status": "ok"
     },
     "p2023-s6-3": {
       "credits": 5,
       "label": "ВСС 3",
-      "options": [],
+      "options": [
+        {
+          "subject": "JavaScript фреймворки",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Основи автоматизованого проєктування складних об'єктів і систем",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Нейронні мережі",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
       "order": 3,
       "plan": 2023,
       "sem": 6,
-      "status": "planned"
+      "status": "ok"
     },
     "p2023-s7-1": {
       "credits": 5,
@@ -136,7 +184,7 @@
       "order": 4,
       "plan": 2023,
       "sem": 7,
-      "status": "ok"
+      "status": "warn"
     },
     "p2023-s8-1": {
       "credits": 5,
@@ -161,7 +209,7 @@
       "order": 5,
       "plan": 2023,
       "sem": 8,
-      "status": "ok"
+      "status": "warn"
     },
     "p2023-s8-2": {
       "credits": 5,
@@ -186,7 +234,7 @@
       "order": 6,
       "plan": 2023,
       "sem": 8,
-      "status": "ok"
+      "status": "warn"
     },
     "p2024-s4-1": {
       "credits": 3,
