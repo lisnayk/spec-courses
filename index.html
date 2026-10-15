@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Спецкурси за вибором ОП «Програмна інженерія»: дисципліни та викладачі за навчальними планами.">
+<meta name="description" content="Спецкурси за вибором (бакалавр і магістр, спеціальність F2): дисципліни та викладачі за навчальними планами.">
 <title>Спецкурси ПІ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500&display=swap">
@@ -121,6 +121,9 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
 .tools{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
 .exp{display:flex;gap:10px;align-items:center}
 .exp-msg{font-size:12px;color:var(--muted)}
+.lvl{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--surface);margin:2px 0 8px}
+.lvl button{border:none;background:none;border-radius:999px;padding:5px 14px;font-size:13px;color:var(--muted)}
+.lvl button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
 .map{display:flex;flex-direction:column;gap:12px}
 .map-pick{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px}
@@ -161,7 +164,8 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   <header class="top">
     <div>
       <h1>Спецкурси за вибором</h1>
-      <p class="sub">ОП «Програмна інженерія», бакалавр. Блоки вільного вибору в межах спеціальності (ВКС/ВСС) за навчальними планами, починаючи з поточного навчального року.</p>
+      <div class="lvl" id="lvl" role="group" aria-label="Рівень вищої освіти"></div>
+      <p class="sub" id="sub">Блоки вільного вибору в межах спеціальності за навчальними планами, починаючи з поточного навчального року.</p>
     </div>
     <div class="legend" aria-label="Статуси блоків">
       <span class="pill p-approved">Затверджено</span>
@@ -217,9 +221,24 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     return fetch('/api/data',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();})
       .then(function(j){applyData(j);if(!S.editing&&!S.addOpen)render();},function(){if(!S.loadedS){S.loadFail=true;render();}});
   }
-  function slotsOf(plan,sem){
+  // Qualification levels. Plan ids: p<year> (bachelor), m<year> (master); a slot id starts with its plan id.
+  var LEVELS={
+    bachelor:{prefix:'p',name:'Бакалавр',degree:'бакалавр',courses:4,sems:8,program:'Програмна інженерія',code:'6.F2.'},
+    master:{prefix:'m',name:'Магістр',degree:'магістр',courses:2,sems:3,program:'Інженерія програмного забезпечення',code:'7.F2.'}};
+  function levelOf(id){return String(id||'')[0]==='m'?'master':'bachelor';}
+  function LV(){return LEVELS[S.level]||LEVELS.bachelor;}
+  function planCourses(p){return p.courses||LEVELS[levelOf(p.id)].courses;}
+  function planSems(p){return p.sems||LEVELS[levelOf(p.id)].sems;}
+  function planProgram(p){return p.program||LEVELS[levelOf(p.id)].program;}
+  function planLast(p){return p.year+planCourses(p)-1;}
+  function levelPlans(){
+    return Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
+      .filter(function(p){return typeof p.year==='number'&&levelOf(p.id)===S.level;});
+  }
+  function planSlots(pid){return Object.keys(S.slots).filter(function(k){return k.indexOf(pid+'-s')===0;}).map(function(k){return S.slots[k];});}
+  function slotsOf(pid,sem){
     return Object.keys(S.slots).map(function(id){var s=S.slots[id];return Object.assign({id:id},s);})
-      .filter(function(s){return s.plan===plan&&s.sem===sem;})
+      .filter(function(s){return s.id.indexOf(pid+'-s')===0&&s.sem===sem;})
       .sort(function(a,b){return ((a.order||0)-(b.order||0))||a.id.localeCompare(b.id);});
   }
   function plural(n,a,b,c){var m=n%10,mm=n%100;return m===1&&mm!==11?a:(m>=2&&m<=4&&(mm<10||mm>=20)?b:c);}
@@ -241,9 +260,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     return el;
   }
   function mapPlans(){
-    return Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
-      .filter(function(p){return typeof p.year==='number';})
-      .sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
+    return levelPlans().sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
   }
   function credits(list){return list.reduce(function(a,s){return a+(Number(s.credits)||0);},0);}
   function blocksText(n,cr){return n+' '+plural(n,'блок','блоки','блоків')+(cr?' · '+cr+' кр.':'');}
@@ -300,20 +317,20 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     var plans=mapPlans();
     mapPick.replaceChildren();mapBox.replaceChildren();mapStats.replaceChildren();
     if(!plans.length){mapBox.append(h('p',{class:'empty'},'Навчальних планів поки немає.'));return;}
-    if(!S.mapPlan||!S.plans['p'+S.mapPlan]){
-      var active=plans.filter(function(p){return p.year+3>=cur;}).sort(function(a,b){return a.year-b.year;});
-      S.mapPlan=(active[0]||plans[plans.length-1]).year;
+    if(!S.mapPlan||!S.plans[S.mapPlan]||levelOf(S.mapPlan)!==S.level){
+      var active=plans.filter(function(p){return planLast(p)>=cur;}).sort(function(a,b){return a.year-b.year;});
+      S.mapPlan=(active[0]||plans[plans.length-1]).id;
     }
     plans.forEach(function(p){
-      mapPick.append(h('button',{type:'button',class:'chip','aria-pressed':String(p.year===S.mapPlan),
-        onclick:function(){S.mapPlan=p.year;try{localStorage.setItem('mapPlan',String(p.year));}catch(e){}render();}},
-        'План '+p.year+(p.year+3<cur?' · випущено':'')));
+      mapPick.append(h('button',{type:'button',class:'chip','aria-pressed':String(p.id===S.mapPlan),
+        onclick:function(){S.mapPlan=p.id;try{localStorage.setItem('mapPlan',p.id);}catch(e){}render();}},
+        'План '+p.year+(planLast(p)<cur?' · випущено':'')));
     });
-    var plan=S.plans['p'+S.mapPlan];
+    var plan=Object.assign({id:S.mapPlan},S.plans[S.mapPlan]);
     var all=[],courses=[];
-    for(var c=1;c<=4;c++){
+    for(var c=1;c<=planCourses(plan);c++){
       var sems=[];
-      [2*c-1,2*c].forEach(function(sem){var list=slotsOf(plan.year,sem);if(list.length){sems.push({sem:sem,slots:list});all=all.concat(list);}});
+      [2*c-1,2*c].filter(function(sem){return sem<=planSems(plan);}).forEach(function(sem){var list=slotsOf(plan.id,sem);if(list.length){sems.push({sem:sem,slots:list});all=all.concat(list);}});
       if(sems.length)courses.push({course:c,year:plan.year+c-1,sems:sems,color:COURSE_COLORS[c-1]});
     }
     renderStats(plan,all);
@@ -349,7 +366,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     });
     var contentH=y-ROW+ROW;
     w0+=12;w1+=12;w2+=12;w3+=12;
-    var title='План '+plan.year,sub=(plan.code?plan.code+' · ':'')+'Програмна інженерія';
+    var title='План '+plan.year,sub=(plan.code?plan.code+' · ':'')+planProgram(plan);
     var cw=Math.max(tw(title,FONT.center),tw(sub,FONT.sub))+40,chh=60;
     var H=Math.max(contentH,chh)+PAD*2+10;
     var cx=PAD+cw/2,cy=H/2,off=cy-contentH/2+10;
@@ -397,11 +414,11 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     mapBox.append(root);
     // Keep the viewer's scroll on background refreshes; reset when another plan is opened.
     var sc=mapBox.parentElement;
-    if(S.mapCentered!==plan.year){S.mapCentered=plan.year;sc.scrollLeft=0;}
+    if(S.mapCentered!==plan.id){S.mapCentered=plan.id;sc.scrollLeft=0;}
   }
 
   function planHead(p,extra){
-    var all=Object.keys(S.slots).map(function(k){return S.slots[k];}).filter(function(s){return s.plan===p.year;});
+    var all=planSlots(p.id);
     var cr=all.reduce(function(a,s){return a+(Number(s.credits)||0);},0);
     return h('div',{class:'pl'+(extra?' '+extra:'')},
       h('div',{class:'py'},String(p.year)),
@@ -426,15 +443,14 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
       hint.textContent='Послідовність спецкурсів обраного навчального плану: курси та семестри по порядку згори донизу, від них блоки й дисципліни. Над картою — статистика плану.';
       renderMap();if(!S.addOpen)renderAdd();return;
     }
-    var plans=Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
-      .filter(function(p){return typeof p.year==='number'&&p.year+3>=cur;})
+    var plans=levelPlans().filter(function(p){return planLast(p)>=cur;})
       .sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
     if(!plans.length){board.style.gridTemplateColumns='1fr';board.append(h('p',{class:'empty'},'Навчальних планів поки немає. Додайте перший план кнопкою нижче.'));if(!S.addOpen)renderAdd();return;}
-    var last=Math.max.apply(null,[cur+3].concat(plans.map(function(p){return p.year+3;})));
+    var last=Math.max.apply(null,[cur+1].concat(plans.map(planLast)));
     var years=[];for(var y=cur;y<=last;y++)years.push(y);
     function cell(p,y,voidClass){
       var k=y-p.year+1;
-      return (k<1||k>4)?h('div',{class:voidClass,'aria-hidden':'true'}):courseCell(p,k,y===cur);
+      return (k<1||k>planCourses(p))?h('div',{class:voidClass,'aria-hidden':'true'}):courseCell(p,k,y===cur);
     }
     if(S.transposed){
       board.style.gridTemplateColumns='minmax(92px,110px) repeat('+plans.length+',minmax(270px,1fr))';
@@ -458,11 +474,11 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
 
   function courseCell(p,k,isCur){
     var cell=h('div',{class:'cc'+(isCur?' cur':'')},h('div',{class:'ch'},k+' курс'));
-    [2*k-1,2*k].forEach(function(sem){
-      var list=slotsOf(p.year,sem);
-      var showNew=S.editing&&S.draft&&S.draft.isNew&&S.draft.plan===p.year&&S.draft.sem===sem;
+    [2*k-1,2*k].filter(function(sem){return sem<=planSems(p);}).forEach(function(sem){
+      var list=slotsOf(p.id,sem);
+      var showNew=S.editing&&S.draft&&S.draft.isNew&&S.draft.pid===p.id&&S.draft.sem===sem;
       var grp=h('div',{class:'sg'},h('div',{class:'sh'},h('span',null,'Семестр '+sem),
-        S.canWrite&&!S.editing?h('button',{class:'lnk',type:'button',onclick:function(){startNew(p.year,sem,list.length);}},'+ слот'):null));
+        S.canWrite&&!S.editing?h('button',{class:'lnk',type:'button',onclick:function(){startNew(p,sem,list.length);}},'+ слот'):null));
       if(!list.length&&!showNew)grp.append(h('div',{class:'none'},'Спецкурсів немає'));
       list.forEach(function(s){grp.append(S.editing===s.id?editCard():slotCard(s));});
       if(showNew)grp.append(editCard());
@@ -523,11 +539,11 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     if(!S.draft.options.length)S.draft.options.push({subject:'',teacher:'',moodle:''});
     render();
   }
-  function startNew(plan,sem,n){
-    var same=Object.keys(S.slots).map(function(k){return S.slots[k];}).filter(function(s){return s.plan===plan;});
+  function startNew(p,sem,n){
+    var plan=p.year,same=planSlots(p.id);
     var pre=null;same.some(function(s){var m=/^(\S+)\s+\d+$/.exec(s.label||'');if(m){pre=m[1];return true;}return false;});
     S.editing='new';S.confirmDel=false;
-    S.draft={isNew:true,id:'p'+plan+'-s'+sem+'-'+Date.now().toString(36),plan:plan,sem:sem,order:n+1,
+    S.draft={isNew:true,pid:p.id,id:p.id+'-s'+sem+'-'+Date.now().toString(36),plan:plan,sem:sem,order:n+1,
       label:pre?pre+' '+(same.length+1):'',credits:'',status:'planned',options:[{subject:'',teacher:'',moodle:''}]};
     render();
     var el=document.getElementById('f-label');if(el)el.focus();
@@ -553,17 +569,18 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   function renderAdd(){
     addSec.replaceChildren();
     if(!S.canWrite||!S.loadedP)return;
-    if(!S.addOpen){addSec.append(h('button',{type:'button',class:'btn',onclick:function(){S.addOpen=true;renderAdd();var el=document.getElementById('np-y');if(el)el.focus();}},'+ Додати навчальний план'));return;}
+    if(!S.addOpen){addSec.append(h('button',{type:'button',class:'btn',onclick:function(){S.addOpen=true;renderAdd();var el=document.getElementById('np-y');if(el)el.focus();}},'+ Додати навчальний план ('+LV().degree+')'));return;}
     var err=h('span',{class:'ferr','aria-live':'polite'});
     var f=h('form',{class:'addf',onsubmit:function(e){
         e.preventDefault();
         var y=parseInt(document.getElementById('np-y').value,10),code=document.getElementById('np-c').value.trim();
         if(!(y>=2000&&y<=2100)){err.textContent='Вкажіть рік вступу, наприклад '+(cur+1)+'.';return;}
-        if(S.plans['p'+y]){err.textContent='План '+y+' вже є.';return;}
-        api.op({type:'setPlan',id:'p'+y,plan:{year:y,code:code,note:''}}).then(function(j){applyData(j);S.addOpen=false;render();renderAdd();},function(x){err.textContent=(x&&x.text)||'Не вдалося додати план.';});
+        var pid=LV().prefix+y;
+        if(S.plans[pid]){err.textContent='План '+y+' ('+LV().degree+') вже є.';return;}
+        api.op({type:'setPlan',id:pid,plan:{year:y,code:code,note:'',courses:LV().courses,sems:LV().sems,program:LV().program}}).then(function(j){applyData(j);S.addOpen=false;render();renderAdd();},function(x){err.textContent=(x&&x.text)||'Не вдалося додати план.';});
       }},
       h('label',null,'Рік вступу',h('input',{id:'np-y',type:'number',min:'2000',max:'2100',placeholder:String(cur+1)})),
-      h('label',null,'Шифр',h('input',{id:'np-c',placeholder:'6.F2.'+String(cur+1).slice(2)})),
+      h('label',null,'Шифр',h('input',{id:'np-c',placeholder:LV().code+String(cur+1).slice(2)})),
       h('button',{class:'btn pri',type:'submit'},'Додати'),
       h('button',{class:'btn',type:'button',onclick:function(){S.addOpen=false;renderAdd();}},'Скасувати'),
       err);
@@ -573,19 +590,19 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   var expBtn=document.getElementById('exp'),expMsg=document.getElementById('exp-msg');
   function exportXlsx(){
     if(!window.XLSX){expMsg.textContent='Не завантажилася бібліотека Excel. Оновіть сторінку.';return;}
-    var rows=[['План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle']];
-    var list=Object.keys(S.slots).map(function(id){return S.slots[id];})
-      .sort(function(a,b){return (a.plan-b.plan)||(a.sem-b.sem)||((a.order||0)-(b.order||0));});
+    var rows=[['Рівень','План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle']];
+    var list=Object.keys(S.slots).map(function(id){return Object.assign({id:id},S.slots[id]);})
+      .sort(function(a,b){return a.id[0].localeCompare(b.id[0])||(a.plan-b.plan)||(a.sem-b.sem)||((a.order||0)-(b.order||0));});
     list.forEach(function(s){
-      var p=S.plans['p'+s.plan]||{};
+      var lv=levelOf(s.id),p=S.plans[LEVELS[lv].prefix+s.plan]||{};
       var course=Math.ceil(s.sem/2),y=s.plan+course-1;
-      var base=[s.plan,p.code||'',yl(y),course,s.sem,s.label||'',s.credits==null?'':s.credits,ST[s.status]||ST.planned];
+      var base=[LEVELS[lv].degree,s.plan,p.code||'',yl(y),course,s.sem,s.label||'',s.credits==null?'':s.credits,ST[s.status]||ST.planned];
       var opts=Array.isArray(s.options)&&s.options.length?s.options:[{subject:'',teacher:'',moodle:''}];
       opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle==null?'':String(o.moodle)]));});
     });
     var ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:10},{wch:10},{wch:10},{wch:6},{wch:8},{wch:10},{wch:8},{wch:18},{wch:60},{wch:34},{wch:12}];
-    ws['!autofilter']={ref:'A1:K'+rows.length};
+    ws['!cols']=[{wch:10},{wch:10},{wch:10},{wch:10},{wch:6},{wch:8},{wch:10},{wch:8},{wch:18},{wch:60},{wch:34},{wch:12}];
+    ws['!autofilter']={ref:'A1:L'+rows.length};
     var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Спецкурси');
     var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
     var d=new Date(),stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -615,7 +632,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   paintView();
   // Mode: table (staircase) or mind map, remembered per browser.
   var modeBtn=document.getElementById('mode');
-  try{S.mode=localStorage.getItem('mode')==='map'?'map':'table';var mp=Number(localStorage.getItem('mapPlan'));if(mp)S.mapPlan=mp;}catch(e){S.mode='table';}
+  try{S.mode=localStorage.getItem('mode')==='map'?'map':'table';var mp=localStorage.getItem('mapPlan');if(mp)S.mapPlan=/^\d{4}$/.test(mp)?'p'+mp:mp;}catch(e){S.mode='table';}
   function paintMode(){modeBtn.textContent=S.mode==='map'?'Таблиця':'Карта навчання';viewBtn.hidden=S.mode==='map';}
   modeBtn.addEventListener('click',function(){
     S.mode=S.mode==='map'?'table':'map';S.mapCentered=null;paintMode();
@@ -623,6 +640,20 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     if(!S.editing)render();
   });
   paintMode();
+  // Qualification level (bachelor / master), remembered per browser.
+  var lvlBox=document.getElementById('lvl'),subEl=document.getElementById('sub');
+  try{S.level=localStorage.getItem('level')==='master'?'master':'bachelor';}catch(e){S.level='bachelor';}
+  function paintLevel(){
+    lvlBox.replaceChildren.apply(lvlBox,Object.keys(LEVELS).map(function(k){
+      return h('button',{type:'button','aria-pressed':String(S.level===k),onclick:function(){
+        if(S.level===k)return;S.level=k;S.addOpen=false;S.mapCentered=null;paintLevel();
+        try{localStorage.setItem('level',k);}catch(e){}
+        if(!S.editing)render();
+      }},LEVELS[k].name);
+    }));
+    subEl.textContent='ОП «'+LV().program+'», '+LV().degree+'. Блоки вільного вибору в межах спеціальності за навчальними планами, починаючи з поточного навчального року.';
+  }
+  paintLevel();
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(S.mode==='map'&&!S.editing)render();});
   sortBtn.addEventListener('click',function(){
     S.newestFirst=!S.newestFirst;paintSort();
