@@ -139,7 +139,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   </header>
   <div class="tools">
     <p class="hint" id="hint">Рядки — навчальні плани за роком вступу, стовпці — навчальні роки.</p>
-    <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
+    <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="sort" title="Змінити порядок навчальних планів"></button><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
   </div>
   <div id="msg" class="msg" role="status" hidden></div>
   <div class="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
@@ -190,7 +190,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     if(!(S.loadedP&&S.loadedS)){board.append(h('p',{class:'empty'},'Завантажую навчальні плани…'));return;}
     var plans=Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
       .filter(function(p){return typeof p.year==='number'&&p.year+3>=cur;})
-      .sort(function(a,b){return a.year-b.year;});
+      .sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
     if(!plans.length){board.style.gridTemplateColumns='1fr';board.append(h('p',{class:'empty'},'Навчальних планів поки немає. Додайте перший план кнопкою нижче.'));if(!S.addOpen)renderAdd();return;}
     var last=Math.max.apply(null,[cur+3].concat(plans.map(function(p){return p.year+3;})));
     var years=[];for(var y=cur;y<=last;y++)years.push(y);
@@ -355,6 +355,16 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   }
   expBtn.addEventListener('click',exportXlsx);
 
+  // Row order is a per-viewer preference, remembered in this browser only.
+  var sortBtn=document.getElementById('sort');
+  try{S.newestFirst=localStorage.getItem('planOrder')==='desc';}catch(e){S.newestFirst=false;}
+  function paintSort(){sortBtn.textContent=S.newestFirst?'Плани: нові зверху ↑':'Плани: старші зверху ↓';sortBtn.setAttribute('aria-pressed',String(S.newestFirst));}
+  sortBtn.addEventListener('click',function(){
+    S.newestFirst=!S.newestFirst;paintSort();
+    try{localStorage.setItem('planOrder',S.newestFirst?'desc':'asc');}catch(e){}
+    if(!S.editing)render();
+  });
+  paintSort();
   expBtn.hidden=false;
   render();
   load();
