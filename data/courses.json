@@ -566,13 +566,19 @@
       "status": "draft"
     },
     "p2026-s4-2": {
-      "credits": 3,
-      "label": "ВКС 2",
-      "options": [],
-      "order": 2,
       "plan": 2026,
       "sem": 4,
-      "status": "planned"
+      "order": 2,
+      "label": "ВКС 2",
+      "credits": 3,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Инженерия harness",
+          "teacher": "Лісняк А.О.",
+          "moodle": "18738"
+        }
+      ]
     },
     "p2026-s5-3": {
       "credits": 4,
