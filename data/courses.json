@@ -1061,15 +1061,6 @@
         }
       ]
     },
-    "m2026-s3-5": {
-      "plan": 2026,
-      "sem": 3,
-      "order": 5,
-      "label": "ВКС 5",
-      "credits": 3,
-      "status": "planned",
-      "options": []
-    },
     "m2026-s3-6": {
       "plan": 2026,
       "sem": 3,
