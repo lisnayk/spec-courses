@@ -1060,15 +1060,6 @@
           "moodle": "16252"
         }
       ]
-    },
-    "m2026-s3-6": {
-      "plan": 2026,
-      "sem": 3,
-      "order": 6,
-      "label": "ВКС 6",
-      "credits": 3,
-      "status": "planned",
-      "options": []
     }
   }
 }
