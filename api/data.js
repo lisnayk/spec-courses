@@ -6,6 +6,21 @@ import { applyOp, ValidationError } from '../lib/store.js';
 const GITHUB_API = 'https://api.github.com';
 const MAX_BODY = 50_000;
 
+class GitHubError extends Error {
+  constructor(action, status) {
+    super(`GitHub ${action} failed: ${status}`);
+    this.status = status;
+  }
+}
+
+// Turns a GitHub status into a hint the site owner can act on (no secrets in it).
+function githubHint(status) {
+  if (status === 401) return 'GitHub відхилив токен: перевірте GITHUB_TOKEN (недійсний або прострочений).';
+  if (status === 403) return 'Токену GitHub бракує прав: потрібен доступ Contents: Read and write до репозиторію.';
+  if (status === 404) return 'Репозиторій або файл не знайдено: перевірте GITHUB_REPO, GITHUB_BRANCH і доступ токена до репозиторію.';
+  return `GitHub повернув помилку ${status}.`;
+}
+
 function config() {
   return {
     token: process.env.GITHUB_TOKEN,
@@ -35,7 +50,7 @@ function contentsUrl(cfg) {
 
 async function readDocument(cfg) {
   const res = await github(cfg, `${contentsUrl(cfg)}?ref=${encodeURIComponent(cfg.branch)}`);
-  if (!res.ok) throw new Error(`GitHub read failed: ${res.status}`);
+  if (!res.ok) throw new GitHubError('read', res.status);
   const file = await res.json();
   const json = Buffer.from(file.content, 'base64').toString('utf8');
   return { data: JSON.parse(json), sha: file.sha };
@@ -54,7 +69,7 @@ async function writeDocument(cfg, data, sha, message) {
     }),
   });
   if (res.status === 409 || res.status === 422) return false;
-  if (!res.ok) throw new Error(`GitHub write failed: ${res.status}`);
+  if (!res.ok) throw new GitHubError('write', res.status);
   return true;
 }
 
@@ -98,6 +113,9 @@ export default async function handler(req, res) {
     if (err instanceof ValidationError) return send(res, 400, { error: err.message });
     if (err instanceof SyntaxError) return send(res, 400, { error: 'Некоректний JSON' });
     console.error(err);
+    if (err instanceof GitHubError) {
+      return send(res, 502, { error: 'Не вдалося звернутися до сховища даних.', detail: githubHint(err.status) });
+    }
     return send(res, 502, { error: 'Не вдалося звернутися до сховища даних.' });
   }
 }
