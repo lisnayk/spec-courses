@@ -1027,7 +1027,7 @@
       "order": 3,
       "label": "ВКС 3",
       "credits": 3,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Протоколи систем управління інформаційною безпекою",
