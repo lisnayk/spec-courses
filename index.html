@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Спецкурси за вибором ОП «Програмна інженерія»: дисципліни та викладачі за навчальними планами.">
+<title>Спецкурси ПІ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500&display=swap">
+<style>
+/* Layout: staircase board — rows are curricula (by intake year), columns are academic years; each plan steps one column right. */
+:root{
+  --bg:#F4F6F9;--surface:#FFFFFF;--ink:#18202C;--muted:#5C6676;--line:#D9DEE6;
+  --accent:#2C5BA6;--accent-soft:#E6EDF8;
+  --ok:#1D7449;--ok-bg:#E3F3EA;--warn:#8F5B00;--warn-bg:#FAEFD9;--miss:#AE3F17;--miss-bg:#FBE8E0;
+  --danger:#B42318;
+  --f-display:"Unbounded",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151C;--surface:#1A2029;--ink:#E5E9F0;--muted:#98A2B3;--line:#2C3441;
+  --accent:#86A9E6;--accent-soft:#1D2A3E;
+  --ok:#6FCB98;--ok-bg:#15281E;--warn:#E6B25A;--warn-bg:#2D2413;--miss:#EF8A62;--miss-bg:#321F18;
+  --danger:#F28B7F;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151C;--surface:#1A2029;--ink:#E5E9F0;--muted:#98A2B3;--line:#2C3441;
+  --accent:#86A9E6;--accent-soft:#1D2A3E;
+  --ok:#6FCB98;--ok-bg:#15281E;--warn:#E6B25A;--warn-bg:#2D2413;--miss:#EF8A62;--miss-bg:#321F18;
+  --danger:#F28B7F;color-scheme:dark}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{padding-inline:16px;padding-block:24px 40px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+.top>div{min-width:0}
+h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px);letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+.sub{margin:0;color:var(--muted);max-width:65ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.02em;padding:2px 8px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-ok,.st-ok .pill{color:var(--ok);background:var(--ok-bg)}
+.p-warn,.st-warn .pill{color:var(--warn);background:var(--warn-bg)}
+.p-missing,.st-missing .pill{color:var(--miss);background:var(--miss-bg)}
+.p-draft,.st-draft .pill{color:var(--muted);background:var(--bg);border:1px solid var(--line)}
+.p-planned,.st-planned .pill{color:var(--accent);background:transparent;border:1px dashed var(--accent)}
+.hint{margin:0;color:var(--muted);font-size:13px}
+.msg{border:1px solid var(--miss);color:var(--miss);background:var(--miss-bg);padding:8px 12px;border-radius:8px}
+.board-scroll{overflow-x:auto;padding-bottom:6px}
+.board{display:grid;gap:10px;align-items:stretch;min-width:min-content}
+.empty{color:var(--muted);padding:24px 0;margin:0}
+.corner{font-size:11px;color:var(--muted);align-self:end;padding-bottom:6px;letter-spacing:.04em;text-transform:uppercase}
+.yh{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);display:flex;gap:8px;align-items:center}
+.yh.cur{color:var(--accent);border-bottom-color:var(--accent)}
+.tag{font-family:var(--f-body);font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:4px}
+.pl{padding:10px 4px 10px 0;display:flex;flex-direction:column;gap:2px}
+.py{font-family:var(--f-display);font-size:22px;font-weight:500;line-height:1.1}
+.pc{font-family:var(--f-mono);font-size:12px;color:var(--ink)}
+.pm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pn{font-size:11px;color:var(--warn);margin-top:4px}
+.void{border-left:1px dashed var(--line);opacity:.6}
+.cc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.cc.cur{border-color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+.ch{font-weight:600;font-size:13px}
+.sg{display:flex;flex-direction:column;gap:6px}
+.sh{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.none{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:6px 8px}
+.slot{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.st-ok{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.st-warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.st-missing{border:1px dashed var(--miss)}
+.st-draft{border:1px dashed var(--muted)}
+.st-draft .subj{color:var(--muted)}
+.st-planned{border:1px dashed color-mix(in srgb,var(--accent) 50%,var(--line))}
+.sl-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sl-l{font-weight:600;font-size:13px}
+.sl-c{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sl-h .pill{margin-left:auto}
+.opts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.opts li{display:flex;flex-direction:column;padding-left:10px;border-left:2px solid var(--line);border-radius:0}
+.subj{font-size:13px}
+.tch{font-size:12px;color:var(--muted)}
+.nopt{margin:0;font-size:12px;color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ico{border:1px solid transparent;background:transparent;border-radius:6px;width:26px;height:26px;display:inline-grid;place-items:center;color:var(--muted);flex:none}
+.ico:hover{border-color:var(--line);color:var(--ink)}
+.lnk{border:none;background:none;color:var(--accent);font-size:12px;padding:2px 0;letter-spacing:0;text-transform:none}
+.lnk:hover{text-decoration:underline}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 12px;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.ghost{border-color:transparent;color:var(--danger);margin-left:auto}
+.btn[disabled]{opacity:.6;cursor:progress}
+.editing{border:1px solid var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);min-width:0}
+input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px;min-width:0;width:100%;box-sizing:border-box}
+.frow{display:grid;grid-template-columns:1fr 70px;gap:6px}
+.frow label:last-child{grid-column:1/-1}
+.fopts{display:flex;flex-direction:column;gap:6px}
+.forow{display:grid;grid-template-columns:1fr auto;gap:4px;align-items:start;padding:6px;border:1px solid var(--line);border-radius:6px}
+.forow .ins{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fact{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.del{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--danger);margin-left:auto;flex-wrap:wrap}
+.addf{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.addf label{width:150px}
+.ferr{color:var(--danger);font-size:12px}
+.foot{font-size:12px;color:var(--muted)}
+.foot a{color:var(--accent)}
+.tools{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.exp{display:flex;gap:10px;align-items:center}
+.exp-msg{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.slot,.btn{transition:border-color .15s,box-shadow .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Спецкурси за вибором</h1>
+      <p class="sub">ОП «Програмна інженерія», бакалавр. Блоки вільного вибору в межах спеціальності (ВКС/ВСС) за навчальними планами, починаючи з поточного навчального року.</p>
+    </div>
+    <div class="legend" aria-label="Статуси блоків">
+      <span class="pill p-ok">Звірено з планом</span>
+      <span class="pill p-warn">План не звірено</span>
+      <span class="pill p-missing">Ймовірно пропущено</span>
+      <span class="pill p-draft">Чернетка (копія)</span>
+      <span class="pill p-planned">Не сформовано</span>
+    </div>
+  </header>
+  <div class="tools">
+    <p class="hint" id="hint">Рядки — навчальні плани за роком вступу, стовпці — навчальні роки.</p>
+    <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
+  </div>
+  <div id="msg" class="msg" role="status" hidden></div>
+  <div class="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
+  <section id="addplan"></section>
+  <footer class="foot">Зміни зберігаються в репозиторії GitHub, кожне збереження є окремим комітом. <a href="https://github.com/lisnayk/spec-courses/commits/main/data/courses.json">Історія змін</a></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  var ST={ok:'Звірено з планом',warn:'План не звірено',missing:'Ймовірно пропущено',draft:'Чернетка (копія)',planned:'Не сформовано'};
+  var S={plans:{},slots:{},loadedP:false,loadedS:false,loadFail:false,canWrite:true,editing:null,draft:null,confirmDel:false,busy:false,addOpen:false};
+  var now=new Date();
+  var cur=now.getMonth()>=8?now.getFullYear():now.getFullYear()-1;
+  function yl(y){return y+'/'+String(y+1).slice(2);}
+  function h(tag,props){
+    var el=document.createElement(tag);
+    if(props){for(var k in props){var v=props[k];if(v==null||v===false)continue;
+      if(k==='class')el.className=v;else if(k.slice(0,2)==='on')el.addEventListener(k.slice(2),v);
+      else el.setAttribute(k,v===true?'':v);}}
+    var kids=[].slice.call(arguments,2);
+    (function add(list){list.forEach(function(c){if(c==null||c===false)return;if(Array.isArray(c))return add(c);el.append(c.nodeType?c:document.createTextNode(String(c)));});})(kids);
+    return el;
+  }
+  var board=document.getElementById('board'),msg=document.getElementById('msg'),addSec=document.getElementById('addplan'),hint=document.getElementById('hint');
+  function say(t){msg.textContent=t||'';msg.hidden=!t;}
+  var api={op:function(body){
+    return fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {};}).then(function(j){if(!r.ok){var e=new Error(j.error||'');e.text=j.error;throw e;}return j;});
+    });
+  }};
+  function applyData(j){S.plans=j.plans||{};S.slots=j.slots||{};S.loadedP=S.loadedS=true;S.loadFail=false;}
+  function load(){
+    return fetch('/api/data',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();})
+      .then(function(j){applyData(j);if(!S.editing&&!S.addOpen)render();},function(){if(!S.loadedS){S.loadFail=true;render();}});
+  }
+  function slotsOf(plan,sem){
+    return Object.keys(S.slots).map(function(id){var s=S.slots[id];return Object.assign({id:id},s);})
+      .filter(function(s){return s.plan===plan&&s.sem===sem;})
+      .sort(function(a,b){return ((a.order||0)-(b.order||0))||a.id.localeCompare(b.id);});
+  }
+  function plural(n,a,b,c){var m=n%10,mm=n%100;return m===1&&mm!==11?a:(m>=2&&m<=4&&(mm<10||mm>=20)?b:c);}
+
+  function render(){
+    board.replaceChildren();
+    if(S.canWrite)hint.textContent='Рядки — навчальні плани за роком вступу, стовпці — навчальні роки. Натисніть ✎ на блоці, щоб змінити дисципліни та викладачів.';
+    if(S.loadFail){board.append(h('p',{class:'empty'},'Не вдалося завантажити дані. Оновіть сторінку.'));return;}
+    if(!(S.loadedP&&S.loadedS)){board.append(h('p',{class:'empty'},'Завантажую навчальні плани…'));return;}
+    var plans=Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
+      .filter(function(p){return typeof p.year==='number'&&p.year+3>=cur;})
+      .sort(function(a,b){return a.year-b.year;});
+    if(!plans.length){board.style.gridTemplateColumns='1fr';board.append(h('p',{class:'empty'},'Навчальних планів поки немає. Додайте перший план кнопкою нижче.'));if(!S.addOpen)renderAdd();return;}
+    var last=Math.max.apply(null,[cur+3].concat(plans.map(function(p){return p.year+3;})));
+    var years=[];for(var y=cur;y<=last;y++)years.push(y);
+    board.style.gridTemplateColumns='minmax(92px,110px) repeat('+years.length+',minmax(270px,1fr))';
+    board.append(h('div',{class:'corner'},'План'));
+    years.forEach(function(y){board.append(h('div',{class:'yh'+(y===cur?' cur':'')},yl(y),y===cur?h('span',{class:'tag'},'поточний'):null));});
+    plans.forEach(function(p){
+      var all=Object.keys(S.slots).map(function(k){return S.slots[k];}).filter(function(s){return s.plan===p.year;});
+      var cr=all.reduce(function(a,s){return a+(Number(s.credits)||0);},0);
+      board.append(h('div',{class:'pl'},
+        h('div',{class:'py'},String(p.year)),
+        p.code?h('div',{class:'pc'},p.code):null,
+        h('div',{class:'pm'},all.length+' '+plural(all.length,'слот','слоти','слотів')+(cr?' · '+cr+' кр.':'')),
+        p.note?h('div',{class:'pn'},p.note):null));
+      years.forEach(function(y){
+        var k=y-p.year+1;
+        if(k<1||k>4){board.append(h('div',{class:'void','aria-hidden':'true'}));return;}
+        board.append(courseCell(p,k,y===cur));
+      });
+    });
+    if(!S.addOpen)renderAdd();
+  }
+
+  function courseCell(p,k,isCur){
+    var cell=h('div',{class:'cc'+(isCur?' cur':'')},h('div',{class:'ch'},k+' курс'));
+    [2*k-1,2*k].forEach(function(sem){
+      var list=slotsOf(p.year,sem);
+      var showNew=S.editing&&S.draft&&S.draft.isNew&&S.draft.plan===p.year&&S.draft.sem===sem;
+      var grp=h('div',{class:'sg'},h('div',{class:'sh'},h('span',null,'Семестр '+sem),
+        S.canWrite&&!S.editing?h('button',{class:'lnk',type:'button',onclick:function(){startNew(p.year,sem,list.length);}},'+ слот'):null));
+      if(!list.length&&!showNew)grp.append(h('div',{class:'none'},'Спецкурсів немає'));
+      list.forEach(function(s){grp.append(S.editing===s.id?editCard():slotCard(s));});
+      if(showNew)grp.append(editCard());
+      cell.append(grp);
+    });
+    return cell;
+  }
+
+  function slotCard(s){
+    var st=ST[s.status]?s.status:'planned';
+    var opts=Array.isArray(s.options)?s.options:[];
+    return h('article',{class:'slot st-'+st},
+      h('header',{class:'sl-h'},
+        h('span',{class:'sl-l'},s.label||'Слот'),
+        s.credits?h('span',{class:'sl-c'},s.credits+' кр.'):null,
+        h('span',{class:'pill'},ST[st]),
+        S.canWrite&&!S.editing?h('button',{class:'ico',type:'button',title:'Редагувати','aria-label':'Редагувати '+(s.label||'слот'),onclick:function(){startEdit(s);}},'✎'):null),
+      opts.length?h('ul',{class:'opts'},opts.map(function(o){return h('li',{title:o.moodle?'Moodle ID: '+o.moodle:null},h('span',{class:'subj'},o.subject||''),o.teacher?h('span',{class:'tch'},o.teacher):null);}))
+        :h('p',{class:'nopt'},st==='missing'?'Блоку немає у службовій записці':'Дисципліни ще не визначено'));
+  }
+
+  function editCard(){
+    var d=S.draft;
+    var sel=h('select',{id:'f-st',onchange:function(e){d.status=e.target.value;}},
+      Object.keys(ST).map(function(k){return h('option',{value:k,selected:d.status===k},ST[k]);}));
+    var ol=h('div',{class:'fopts'});
+    d.options.forEach(function(o,i){
+      ol.append(h('div',{class:'forow'},
+        h('div',{class:'ins'},
+          h('input',{id:'f-s-'+i,placeholder:'Дисципліна','aria-label':'Дисципліна '+(i+1),value:o.subject,oninput:function(e){o.subject=e.target.value;}}),
+          h('input',{id:'f-t-'+i,placeholder:'Викладач','aria-label':'Викладач '+(i+1),value:o.teacher,oninput:function(e){o.teacher=e.target.value;}}),
+          h('input',{id:'f-m-'+i,placeholder:'ID курсу в Moodle',inputmode:'numeric','aria-label':'ID курсу в Moodle '+(i+1),value:o.moodle,oninput:function(e){o.moodle=e.target.value;}})),
+        h('button',{type:'button',class:'ico',title:'Прибрати','aria-label':'Прибрати дисципліну '+(i+1),onclick:function(){d.options.splice(i,1);render();}},'×')));
+    });
+    ol.append(h('button',{type:'button',class:'lnk',onclick:function(){d.options.push({subject:'',teacher:'',moodle:''});render();var el=document.getElementById('f-s-'+(d.options.length-1));if(el)el.focus();}},'+ дисципліна'));
+    var act=h('div',{class:'fact'},
+      h('button',{type:'button',class:'btn pri',disabled:S.busy,onclick:save},S.busy?'Зберігаю…':'Зберегти'),
+      h('button',{type:'button',class:'btn',disabled:S.busy,onclick:finish},'Скасувати'),
+      d.isNew?null:(S.confirmDel
+        ?h('span',{class:'del'},'Видалити блок?',h('button',{type:'button',class:'btn danger',onclick:del},'Так, видалити'),h('button',{type:'button',class:'btn',onclick:function(){S.confirmDel=false;render();}},'Ні'))
+        :h('button',{type:'button',class:'btn ghost',onclick:function(){S.confirmDel=true;render();}},'Видалити')));
+    return h('article',{class:'slot editing'},
+      h('div',{class:'frow'},
+        h('label',null,'Блок',h('input',{id:'f-label',value:d.label,oninput:function(e){d.label=e.target.value;}})),
+        h('label',null,'Кредити',h('input',{id:'f-cr',type:'number',min:'0',step:'1',value:d.credits==null?'':String(d.credits),oninput:function(e){d.credits=e.target.value;}})),
+        h('label',null,'Статус',sel)),
+      ol,act);
+  }
+
+  function startEdit(s){
+    S.editing=s.id;S.confirmDel=false;
+    S.draft={isNew:false,id:s.id,plan:s.plan,sem:s.sem,order:s.order||0,label:s.label||'',credits:s.credits==null?'':s.credits,
+      status:ST[s.status]?s.status:'planned',
+      options:(Array.isArray(s.options)?s.options:[]).map(function(o){return{subject:o.subject||'',teacher:o.teacher||'',moodle:o.moodle==null?'':String(o.moodle)};})};
+    if(!S.draft.options.length)S.draft.options.push({subject:'',teacher:'',moodle:''});
+    render();
+  }
+  function startNew(plan,sem,n){
+    var same=Object.keys(S.slots).map(function(k){return S.slots[k];}).filter(function(s){return s.plan===plan;});
+    var pre=null;same.some(function(s){var m=/^(\S+)\s+\d+$/.exec(s.label||'');if(m){pre=m[1];return true;}return false;});
+    S.editing='new';S.confirmDel=false;
+    S.draft={isNew:true,id:'p'+plan+'-s'+sem+'-'+Date.now().toString(36),plan:plan,sem:sem,order:n+1,
+      label:pre?pre+' '+(same.length+1):'',credits:'',status:'planned',options:[{subject:'',teacher:'',moodle:''}]};
+    render();
+    var el=document.getElementById('f-label');if(el)el.focus();
+  }
+  function finish(){S.editing=null;S.draft=null;S.busy=false;S.confirmDel=false;render();}
+  function fail(e){say((e&&e.text)||'Не вдалося зберегти зміни. Спробуйте ще раз.');}
+  function save(){
+    var d=S.draft;
+    var options=d.options.map(function(o){return{subject:o.subject.trim(),teacher:o.teacher.trim(),moodle:String(o.moodle||'').trim()};}).filter(function(o){return o.subject;});
+    var status=d.status;
+    if(options.length&&status==='planned')status='ok';
+    if(!options.length&&(status==='ok'||status==='draft'))status='planned';
+    var cr=(d.credits===''||d.credits==null)?null:Number(d.credits);
+    var body={plan:d.plan,sem:d.sem,order:d.order,label:d.label.trim()||'Блок',credits:(cr!=null&&isFinite(cr))?cr:null,status:status,options:options};
+    S.busy=true;render();
+    api.op({type:'setSlot',id:d.id,slot:body}).then(function(j){applyData(j);say('');finish();},function(e){S.busy=false;fail(e);render();});
+  }
+  function del(){
+    var id=S.draft.id;S.busy=true;render();
+    api.op({type:'deleteSlot',id:id}).then(function(j){applyData(j);say('');finish();},function(e){S.busy=false;fail(e);render();});
+  }
+
+  function renderAdd(){
+    addSec.replaceChildren();
+    if(!S.canWrite||!S.loadedP)return;
+    if(!S.addOpen){addSec.append(h('button',{type:'button',class:'btn',onclick:function(){S.addOpen=true;renderAdd();var el=document.getElementById('np-y');if(el)el.focus();}},'+ Додати навчальний план'));return;}
+    var err=h('span',{class:'ferr','aria-live':'polite'});
+    var f=h('form',{class:'addf',onsubmit:function(e){
+        e.preventDefault();
+        var y=parseInt(document.getElementById('np-y').value,10),code=document.getElementById('np-c').value.trim();
+        if(!(y>=2000&&y<=2100)){err.textContent='Вкажіть рік вступу, наприклад '+(cur+1)+'.';return;}
+        if(S.plans['p'+y]){err.textContent='План '+y+' вже є.';return;}
+        api.op({type:'setPlan',id:'p'+y,plan:{year:y,code:code,note:''}}).then(function(j){applyData(j);S.addOpen=false;render();renderAdd();},function(x){err.textContent=(x&&x.text)||'Не вдалося додати план.';});
+      }},
+      h('label',null,'Рік вступу',h('input',{id:'np-y',type:'number',min:'2000',max:'2100',placeholder:String(cur+1)})),
+      h('label',null,'Шифр',h('input',{id:'np-c',placeholder:'6.F2.'+String(cur+1).slice(2)})),
+      h('button',{class:'btn pri',type:'submit'},'Додати'),
+      h('button',{class:'btn',type:'button',onclick:function(){S.addOpen=false;renderAdd();}},'Скасувати'),
+      err);
+    addSec.append(f);
+  }
+
+  var expBtn=document.getElementById('exp'),expMsg=document.getElementById('exp-msg');
+  function exportXlsx(){
+    if(!window.XLSX){expMsg.textContent='Не завантажилася бібліотека Excel. Оновіть сторінку.';return;}
+    var rows=[['План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle']];
+    var list=Object.keys(S.slots).map(function(id){return S.slots[id];})
+      .sort(function(a,b){return (a.plan-b.plan)||(a.sem-b.sem)||((a.order||0)-(b.order||0));});
+    list.forEach(function(s){
+      var p=S.plans['p'+s.plan]||{};
+      var course=Math.ceil(s.sem/2),y=s.plan+course-1;
+      var base=[s.plan,p.code||'',yl(y),course,s.sem,s.label||'',s.credits==null?'':s.credits,ST[s.status]||ST.planned];
+      var opts=Array.isArray(s.options)&&s.options.length?s.options:[{subject:'',teacher:'',moodle:''}];
+      opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle==null?'':String(o.moodle)]));});
+    });
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:10},{wch:10},{wch:10},{wch:6},{wch:8},{wch:10},{wch:8},{wch:18},{wch:60},{wch:34},{wch:12}];
+    ws['!autofilter']={ref:'A1:K'+rows.length};
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Спецкурси');
+    var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+    var d=new Date(),stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Спецкурси_ПІ_'+stamp+'.xlsx';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  }
+  expBtn.addEventListener('click',exportXlsx);
+
+  expBtn.hidden=false;
+  render();
+  load();
+  setInterval(function(){if(!document.hidden&&!S.editing&&!S.addOpen&&!S.busy)load();},30000);
+})();
+</script>
+</body>
+</html>
