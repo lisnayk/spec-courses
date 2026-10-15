@@ -325,13 +325,19 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         st.teacherList.length?teachers:h('p',{class:'nopt'},'Викладачів ще не вказано')));
   }
 
-  // ---- Overview on the main page: unique disciplines and teachers across both levels, all years ----
+  // ---- Overview on the main page: both levels, current and next academic year only ----
   function normSubj(t){return String(t||'').toLowerCase().replace(/[’ʼ`]/g,"'").replace(/\s+/g,' ').trim();}
   function overviewStats(){
     var o={plans:{bachelor:0,master:0},blocks:{bachelor:0,master:0},subj:{},teach:{}};
-    Object.keys(S.plans).forEach(function(id){o.plans[levelOf(id)]++;});
+    // A plan counts if any of its courses falls in [cur, cur+1]; a block counts if it is taught in those years.
+    Object.keys(S.plans).forEach(function(id){
+      var p=Object.assign({id:id},S.plans[id]);
+      if(typeof p.year==='number'&&p.year<=cur+1&&planLast(p)>=cur)o.plans[levelOf(id)]++;
+    });
     Object.keys(S.slots).forEach(function(id){
-      var s=S.slots[id],lv=levelOf(id);o.blocks[lv]++;
+      var s=S.slots[id],lv=levelOf(id),y=s.plan+Math.ceil(s.sem/2)-1;
+      if(y<cur||y>cur+1)return;
+      o.blocks[lv]++;
       (Array.isArray(s.options)?s.options:[]).forEach(function(op){
         if(!op.subject)return;
         var key=normSubj(op.subject);
@@ -378,8 +384,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         })));
     }
     overview.replaceChildren(
-      h('div',{class:'ov-head'},h('div',{class:'shead'},'Загальна статистика · бакалавр і магістр · усі роки'),
-        h('div',{class:'tn'},'Дисципліни рахуються один раз, навіть якщо повторюються в різних планах і роках')),
+      h('div',{class:'ov-head'},h('div',{class:'shead'},'Загальна статистика · '+yl(cur)+' і '+yl(cur+1)+' · бакалавр і магістр'),
+        h('div',{class:'tn'},'Лише блоки поточного й наступного навчальних років; дисципліна рахується один раз, навіть якщо повторюється')),
       tiles,
       h('div',{class:'shead'},'Викладачі та кількість унікальних дисциплін (натисніть, щоб побачити перелік)'),
       chips,detail);
