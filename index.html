@@ -155,6 +155,17 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
 .tchip b{font-family:var(--f-mono);font-weight:500;font-size:12px;min-width:22px;text-align:center;padding:1px 6px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
 .tchip.hi{border-color:var(--accent)}
 .tchip.hi b{background:var(--accent);color:var(--surface)}
+button.tchip{font:inherit;color:inherit;cursor:pointer}
+button.tchip:hover{border-color:var(--muted)}
+button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.ov{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:14px}
+.ov-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.ov-head .shead{font-size:12px}
+.ovd{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.ovl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:4px 16px}
+.ovl li{font-size:13px;display:flex;gap:6px;align-items:baseline}
+.lt{font-size:10px;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.lt.m{background:var(--warn-bg);color:var(--warn)}
 @media (prefers-reduced-motion:no-preference){.slot,.btn{transition:border-color .15s,box-shadow .15s}}
 </style>
 </head>
@@ -180,6 +191,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     <p class="hint" id="hint">Рядки — навчальні плани за роком вступу, стовпці — навчальні роки.</p>
     <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="mode"></button><button type="button" class="btn" id="view" title="Поміняти місцями рядки і стовпці"></button><button type="button" class="btn" id="sort" title="Змінити порядок навчальних планів"></button><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
   </div>
+  <section id="overview" class="ov" aria-label="Загальна статистика" hidden></section>
   <div id="msg" class="msg" role="status" hidden></div>
   <div class="board-scroll" id="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
   <section id="map" class="map" hidden>
@@ -208,7 +220,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     (function add(list){list.forEach(function(c){if(c==null||c===false)return;if(Array.isArray(c))return add(c);el.append(c.nodeType?c:document.createTextNode(String(c)));});})(kids);
     return el;
   }
-  var boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
+  var overview=document.getElementById('overview'),boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
   var board=document.getElementById('board'),msg=document.getElementById('msg'),addSec=document.getElementById('addplan'),hint=document.getElementById('hint');
   function say(t){msg.textContent=t||'';msg.hidden=!t;}
   var api={op:function(body){
@@ -311,6 +323,66 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
       h('div',{class:'stats-main'},tiles,h('div',{class:'sstatus'},h('div',{class:'shead'},'Статуси блоків'),bar,legend)),
       h('div',{class:'stats-side'},h('div',{class:'shead'},'Навантаження викладачів (кількість дисциплін)'),
         st.teacherList.length?teachers:h('p',{class:'nopt'},'Викладачів ще не вказано')));
+  }
+
+  // ---- Overview on the main page: unique disciplines and teachers across both levels, all years ----
+  function normSubj(t){return String(t||'').toLowerCase().replace(/[’ʼ`]/g,"'").replace(/\s+/g,' ').trim();}
+  function overviewStats(){
+    var o={plans:{bachelor:0,master:0},blocks:{bachelor:0,master:0},subj:{},teach:{}};
+    Object.keys(S.plans).forEach(function(id){o.plans[levelOf(id)]++;});
+    Object.keys(S.slots).forEach(function(id){
+      var s=S.slots[id],lv=levelOf(id);o.blocks[lv]++;
+      (Array.isArray(s.options)?s.options:[]).forEach(function(op){
+        if(!op.subject)return;
+        var key=normSubj(op.subject);
+        var subj=o.subj[key]||(o.subj[key]={name:op.subject.trim(),levels:{}});subj.levels[lv]=1;
+        String(op.teacher||'').split(',').map(function(t){return t.trim();}).filter(Boolean).forEach(function(t){
+          var tt=o.teach[t]||(o.teach[t]={name:t,subj:{}});
+          var e=tt.subj[key]||(tt.subj[key]={name:subj.name,levels:{}});e.levels[lv]=1;
+        });
+      });
+    });
+    var keys=Object.keys(o.subj);
+    o.subjTotal=keys.length;
+    o.subjBy={bachelor:keys.filter(function(k){return o.subj[k].levels.bachelor;}).length,master:keys.filter(function(k){return o.subj[k].levels.master;}).length};
+    o.teachers=Object.keys(o.teach).map(function(t){var x=o.teach[t];x.count=Object.keys(x.subj).length;return x;})
+      .sort(function(a,b){return b.count-a.count||a.name.localeCompare(b.name,'uk');});
+    return o;
+  }
+  function renderOverview(){
+    var o=overviewStats();
+    function tile(value,label,note){return h('div',{class:'tile'},h('div',{class:'tv'},String(value)),h('div',{class:'tl'},label),note?h('div',{class:'tn'},note):null);}
+    function split(x){return 'бак '+x.bachelor+' · маг '+x.master;}
+    var tiles=h('div',{class:'tiles'},
+      tile(o.plans.bachelor+o.plans.master,plural(o.plans.bachelor+o.plans.master,'навчальний план','навчальні плани','навчальних планів'),split(o.plans)),
+      tile(o.blocks.bachelor+o.blocks.master,plural(o.blocks.bachelor+o.blocks.master,'блок','блоки','блоків'),split(o.blocks)),
+      tile(o.subjTotal,plural(o.subjTotal,'унікальна дисципліна','унікальні дисципліни','унікальних дисциплін'),split(o.subjBy)),
+      tile(o.teachers.length,plural(o.teachers.length,'викладач','викладачі','викладачів')));
+    var max=o.teachers.length?o.teachers[0].count:0;
+    if(S.ovTeacher&&!o.teach[S.ovTeacher])S.ovTeacher=null;
+    var chips=h('div',{class:'tchips'},o.teachers.map(function(t){
+      var b=Object.keys(t.subj).filter(function(k){return t.subj[k].levels.bachelor;}).length;
+      var m=Object.keys(t.subj).filter(function(k){return t.subj[k].levels.master;}).length;
+      return h('button',{type:'button',class:'tchip'+(t.count===max?' hi':''),'aria-pressed':String(S.ovTeacher===t.name),
+        title:t.name+': '+t.count+' '+plural(t.count,'унікальна дисципліна','унікальні дисципліни','унікальних дисциплін')+' (бак '+b+', маг '+m+')',
+        onclick:function(){S.ovTeacher=S.ovTeacher===t.name?null:t.name;renderOverview();}},
+        h('span',{class:'tname'},t.name),h('b',null,String(t.count)));
+    }));
+    var detail=null;
+    if(S.ovTeacher){
+      var t=o.teach[S.ovTeacher];
+      var list=Object.keys(t.subj).map(function(k){return t.subj[k];}).sort(function(a,b){return a.name.localeCompare(b.name,'uk');});
+      detail=h('div',{class:'ovd'},h('div',{class:'shead'},S.ovTeacher+' — '+list.length+' '+plural(list.length,'дисципліна','дисципліни','дисциплін')),
+        h('ul',{class:'ovl'},list.map(function(x){
+          return h('li',null,h('span',null,x.name),x.levels.bachelor?h('span',{class:'lt'},'бак'):null,x.levels.master?h('span',{class:'lt m'},'маг'):null);
+        })));
+    }
+    overview.replaceChildren(
+      h('div',{class:'ov-head'},h('div',{class:'shead'},'Загальна статистика · бакалавр і магістр · усі роки'),
+        h('div',{class:'tn'},'Дисципліни рахуються один раз, навіть якщо повторюються в різних планах і роках')),
+      tiles,
+      h('div',{class:'shead'},'Викладачі та кількість унікальних дисциплін (натисніть, щоб побачити перелік)'),
+      chips,detail);
   }
 
   function renderMap(){
@@ -438,7 +510,8 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     if(S.loadFail){board.append(h('p',{class:'empty'},'Не вдалося завантажити дані. Оновіть сторінку.'));return;}
     if(!(S.loadedP&&S.loadedS)){board.append(h('p',{class:'empty'},'Завантажую навчальні плани…'));return;}
     var isMap=S.mode==='map';
-    boardScroll.hidden=isMap;mapWrap.hidden=!isMap;
+    boardScroll.hidden=isMap;mapWrap.hidden=!isMap;overview.hidden=isMap;
+    if(!isMap)renderOverview();
     if(isMap){
       hint.textContent='Послідовність спецкурсів обраного навчального плану: курси та семестри по порядку згори донизу, від них блоки й дисципліни. Над картою — статистика плану.';
       renderMap();if(!S.addOpen)renderAdd();return;
