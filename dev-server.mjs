@@ -35,6 +35,13 @@ createServer(async (req, res) => {
     if (pathname === '/' || pathname === '/index.html') {
       return send(res, 200, await readFile(INDEX, 'utf8'), 'text/html; charset=utf-8');
     }
+    if (/^\/plans\/[A-Za-z0-9._-]+\.pdf$/.test(pathname)) {
+      const pdf = await readFile(new URL('.' + pathname, import.meta.url)).catch(() => null);
+      if (pdf) {
+        res.writeHead(200, { 'Content-Type': 'application/pdf' });
+        return res.end(pdf);
+      }
+    }
     return send(res, 404, { error: 'Not found' });
   } catch (err) {
     if (err instanceof ValidationError) return send(res, 400, { error: err.message });
