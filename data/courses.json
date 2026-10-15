@@ -987,7 +987,7 @@
       "order": 2,
       "label": "ВКС 2",
       "credits": 3,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Програмування вбудованих систем",
