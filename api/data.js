@@ -21,12 +21,22 @@ function githubHint(status) {
   return `GitHub повернув помилку ${status}.`;
 }
 
+// Accepts "owner/repo" as well as a pasted URL like https://github.com/owner/repo.git
+function normalizeRepo(value) {
+  return (value || '')
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+    .replace(/^git@github\.com:/i, '')
+    .replace(/\.git$/i, '')
+    .replace(/\/+$/, '');
+}
+
 function config() {
   return {
-    token: process.env.GITHUB_TOKEN,
-    repo: process.env.GITHUB_REPO,
-    branch: process.env.GITHUB_BRANCH || 'main',
-    path: process.env.DATA_PATH || 'data/courses.json',
+    token: (process.env.GITHUB_TOKEN || '').trim(),
+    repo: normalizeRepo(process.env.GITHUB_REPO),
+    branch: (process.env.GITHUB_BRANCH || '').trim() || 'main',
+    path: (process.env.DATA_PATH || '').trim() || 'data/courses.json',
   };
 }
 
