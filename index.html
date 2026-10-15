@@ -121,6 +121,18 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
 .tools{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
 .exp{display:flex;gap:10px;align-items:center}
 .exp-msg{font-size:12px;color:var(--muted)}
+.map{display:flex;flex-direction:column;gap:12px}
+.map-pick{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.map-scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+#map-box svg{display:block;margin:0 auto}
+#map-box text{fill:var(--ink)}
+#map-box .mt{fill:var(--muted)}
+#map-box .cur-y{fill:var(--accent)}
+#map-box .mc{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.dot-approved{fill:var(--appr)}.dot-ok{fill:var(--ok)}.dot-warn{fill:var(--warn)}.dot-missing{fill:var(--miss)}.dot-draft{fill:var(--muted)}
+.dot-planned{fill:none;stroke:var(--accent);stroke-width:1.5}
 @media (prefers-reduced-motion:no-preference){.slot,.btn{transition:border-color .15s,box-shadow .15s}}
 </style>
 </head>
@@ -143,10 +155,14 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
   </header>
   <div class="tools">
     <p class="hint" id="hint">Рядки — навчальні плани за роком вступу, стовпці — навчальні роки.</p>
-    <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="view" title="Поміняти місцями рядки і стовпці"></button><button type="button" class="btn" id="sort" title="Змінити порядок навчальних планів"></button><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
+    <div class="exp"><span id="exp-msg" class="exp-msg" aria-live="polite"></span><button type="button" class="btn" id="mode"></button><button type="button" class="btn" id="view" title="Поміняти місцями рядки і стовпці"></button><button type="button" class="btn" id="sort" title="Змінити порядок навчальних планів"></button><button type="button" class="btn" id="exp" hidden>Завантажити Excel</button></div>
   </div>
   <div id="msg" class="msg" role="status" hidden></div>
-  <div class="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
+  <div class="board-scroll" id="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
+  <section id="map" class="map" hidden>
+    <div id="map-pick" class="map-pick" role="group" aria-label="Навчальний план"></div>
+    <div class="map-scroll"><div id="map-box"></div></div>
+  </section>
   <section id="addplan"></section>
   <footer class="foot">Зміни зберігаються в репозиторії GitHub, кожне збереження є окремим комітом. <a href="https://github.com/lisnayk/spec-courses/commits/main/data/courses.json">Історія змін</a></footer>
 </div>
@@ -168,6 +184,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     (function add(list){list.forEach(function(c){if(c==null||c===false)return;if(Array.isArray(c))return add(c);el.append(c.nodeType?c:document.createTextNode(String(c)));});})(kids);
     return el;
   }
+  var boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapBox=document.getElementById('map-box');
   var board=document.getElementById('board'),msg=document.getElementById('msg'),addSec=document.getElementById('addplan'),hint=document.getElementById('hint');
   function say(t){msg.textContent=t||'';msg.hidden=!t;}
   var api={op:function(body){
@@ -186,6 +203,123 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
       .sort(function(a,b){return ((a.order||0)-(b.order||0))||a.id.localeCompare(b.id);});
   }
   function plural(n,a,b,c){var m=n%10,mm=n%100;return m===1&&mm!==11?a:(m>=2&&m<=4&&(mm<10||mm>=20)?b:c);}
+
+  // ---- Mind map: the whole sequence of specialty electives for one curriculum ----
+  var SEM_COLORS=['#2FA59B','#E39B2D','#E0624F','#8E6BDB','#3F86D9','#CF5A93','#5BA84A','#C27C3A'];
+  var SVGNS='http://www.w3.org/2000/svg';
+  var FONT={center:'500 18px Unbounded, system-ui, sans-serif',sub:'12px "IBM Plex Sans", system-ui, sans-serif',
+    sem:'600 14px "IBM Plex Sans", system-ui, sans-serif',block:'500 13px "IBM Plex Sans", system-ui, sans-serif',
+    leaf:'13px "IBM Plex Sans", system-ui, sans-serif',meta:'12px "IBM Plex Sans", system-ui, sans-serif'};
+  var measureCtx=document.createElement('canvas').getContext('2d');
+  function tw(t,font){measureCtx.font=font;return measureCtx.measureText(t).width;}
+  function svg(tag,attrs){
+    var el=document.createElementNS(SVGNS,tag);
+    for(var k in attrs)if(attrs[k]!=null)el.setAttribute(k,attrs[k]);
+    for(var i=2;i<arguments.length;i++){var c=arguments[i];if(c!=null)el.append(c.nodeType?c:document.createTextNode(String(c)));}
+    return el;
+  }
+  function mapPlans(){
+    return Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
+      .filter(function(p){return typeof p.year==='number';})
+      .sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
+  }
+  function renderMap(){
+    var plans=mapPlans();
+    mapPick.replaceChildren();mapBox.replaceChildren();
+    if(!plans.length){mapBox.append(h('p',{class:'empty'},'Навчальних планів поки немає.'));return;}
+    if(!S.mapPlan||!S.plans['p'+S.mapPlan]){
+      var active=plans.filter(function(p){return p.year+3>=cur;}).sort(function(a,b){return a.year-b.year;});
+      S.mapPlan=(active[0]||plans[plans.length-1]).year;
+    }
+    plans.forEach(function(p){
+      mapPick.append(h('button',{type:'button',class:'chip','aria-pressed':String(p.year===S.mapPlan),
+        onclick:function(){S.mapPlan=p.year;try{localStorage.setItem('mapPlan',String(p.year));}catch(e){}render();}},
+        'План '+p.year+(p.year+3<cur?' · випущено':'')));
+    });
+    var plan=S.plans['p'+S.mapPlan];
+    var groups=[];
+    for(var sem=1;sem<=8;sem++){var list=slotsOf(plan.year,sem);if(list.length)groups.push({sem:sem,slots:list,color:SEM_COLORS[(sem-1)%SEM_COLORS.length]});}
+    if(!groups.length){mapBox.append(h('p',{class:'empty'},'У плані '+plan.year+' ще немає блоків спецкурсів.'));return;}
+
+    var ROW=26,GAP=16,G=48,UL=6,PAD=24;
+    groups.forEach(function(g){
+      var course=Math.ceil(g.sem/2),y=plan.year+course-1;
+      g.year=y;g.text=g.sem+' семестр · '+course+' курс · '+yl(y);g.w=tw(g.text,FONT.sem);
+      g.slots.forEach(function(s){
+        s.text=(s.label||'Блок')+(s.credits?' · '+s.credits+' кр.':'');s.w=tw(s.text,FONT.block)+16;
+        var opts=Array.isArray(s.options)?s.options:[];
+        s.leaves=opts.length?opts.map(function(o){
+          var meta=o.teacher?' · '+o.teacher:'';
+          return {subject:o.subject||'',meta:meta,moodle:o.moodle,w:tw(o.subject||'',FONT.leaf)+tw(meta,FONT.meta)};
+        }):[{subject:s.status==='missing'?'Блоку немає у службовій записці':'Дисципліни ще не визначено',meta:'',empty:true,w:tw('Блоку немає у службовій записці',FONT.leaf)}];
+      });
+    });
+    // One direction: the plan on the left, semesters top to bottom in study order on the right.
+    var sides=[{dir:1,groups:groups},{dir:-1,groups:[]}];
+    sides.forEach(function(side){
+      var y=0,w1=0,w2=0,w3=0;
+      side.groups.forEach(function(g){
+        w1=Math.max(w1,g.w);
+        var gy=[];
+        g.slots.forEach(function(s){
+          w2=Math.max(w2,s.w);
+          var ys=s.leaves.map(function(l){w3=Math.max(w3,l.w);var r=y;y+=ROW;return r;});
+          s.leafYs=ys;s.y=(ys[0]+ys[ys.length-1])/2;gy.push(s.y);
+        });
+        g.y=(gy[0]+gy[gy.length-1])/2;y+=GAP;
+      });
+      side.h=side.groups.length?y-GAP:0;side.w1=w1+12;side.w2=w2+12;side.w3=w3+12;
+      side.reach=side.groups.length?G+side.w1+G+side.w2+G+side.w3:0;
+    });
+    var title='План '+plan.year,sub=(plan.code?plan.code+' · ':'')+'Програмна інженерія';
+    var cw=Math.max(tw(title,FONT.center),tw(sub,FONT.sub))+40,chh=60;
+    var H=Math.max(sides[0].h,sides[1].h,chh)+PAD*2+20;
+    var cx=PAD+sides[1].reach+cw/2,cy=H/2;
+    var W=cx+cw/2+sides[0].reach+PAD;
+    var root=svg('svg',{width:Math.ceil(W),height:Math.ceil(H),viewBox:'0 0 '+Math.ceil(W)+' '+Math.ceil(H),role:'img','aria-label':'Карта спецкурсів плану '+plan.year});
+
+    function branch(px,py,x,y,len,dir,color,width){
+      var mx=(px+x)/2;
+      root.append(svg('path',{d:'M'+px+' '+py+' C'+mx+' '+py+','+mx+' '+(y+UL)+','+x+' '+(y+UL)+' L'+(x+dir*len)+' '+(y+UL),
+        fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':'round'}));
+      return [x+dir*len,y+UL];
+    }
+    function label(x,y,dir,font,cls){
+      return svg('text',{x:x+dir*6,y:y,'text-anchor':dir>0?'start':'end',style:'font:'+font,class:cls||null});
+    }
+    sides.forEach(function(side){
+      var dir=side.dir,off=cy-side.h/2;
+      var x1=cx+dir*(cw/2+G),x2=x1+dir*(side.w1+G),x3=x2+dir*(side.w2+G);
+      side.groups.forEach(function(g){
+        var gy=off+g.y;
+        var gEnd=branch(cx+dir*cw/2,cy,x1,gy,side.w1,dir,g.color,3);
+        var gl=label(x1,gy,dir,FONT.sem,g.year===cur?'cur-y':null);gl.append(g.text);root.append(gl);
+        g.slots.forEach(function(s){
+          var sy=off+s.y;
+          var sEnd=branch(gEnd[0],gEnd[1],x2,sy,side.w2,dir,g.color,2);
+          var st=['approved','ok','warn','missing','draft','planned'].indexOf(s.status)>=0?s.status:'planned';
+          root.append(svg('circle',{cx:x2+dir*10,cy:sy-4,r:4,class:'dot-'+st},svg('title',null,ST[st])));
+          root.append(svg('text',{x:x2+dir*20,y:sy,'text-anchor':dir>0?'start':'end',style:'font:'+FONT.block},s.text));
+          s.leaves.forEach(function(l,i){
+            var ly=off+s.leafYs[i];
+            branch(sEnd[0],sEnd[1],x3,ly,l.w+12,dir,g.color,1.25);
+            var t=label(x3,ly,dir,FONT.leaf,l.empty?'mt':null);
+            t.append(svg('tspan',null,l.subject));
+            if(l.meta)t.append(svg('tspan',{class:'mt',style:'font:'+FONT.meta},l.meta));
+            if(l.moodle)t.append(svg('title',null,'Moodle ID: '+l.moodle));
+            root.append(t);
+          });
+        });
+      });
+    });
+    root.append(svg('rect',{x:cx-cw/2,y:cy-chh/2,width:cw,height:chh,rx:12,class:'mc'}));
+    root.append(svg('text',{x:cx,y:cy-4,'text-anchor':'middle',style:'font:'+FONT.center},title));
+    root.append(svg('text',{x:cx,y:cy+16,'text-anchor':'middle',style:'font:'+FONT.sub,class:'mt'},sub));
+    mapBox.append(root);
+    // Center the root node when a plan is opened, but keep the viewer's scroll on background refreshes.
+    var sc=mapBox.parentElement;
+    if(S.mapCentered!==plan.year){S.mapCentered=plan.year;sc.scrollLeft=Math.max(0,cx-sc.clientWidth/2);}
+  }
 
   function planHead(p,extra){
     var all=Object.keys(S.slots).map(function(k){return S.slots[k];}).filter(function(s){return s.plan===p.year;});
@@ -207,6 +341,12 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     hint.textContent=lead+(S.canWrite?' Натисніть ✎ на блоці, щоб змінити дисципліни та викладачів.':'');
     if(S.loadFail){board.append(h('p',{class:'empty'},'Не вдалося завантажити дані. Оновіть сторінку.'));return;}
     if(!(S.loadedP&&S.loadedS)){board.append(h('p',{class:'empty'},'Завантажую навчальні плани…'));return;}
+    var isMap=S.mode==='map';
+    boardScroll.hidden=isMap;mapWrap.hidden=!isMap;
+    if(isMap){
+      hint.textContent='Послідовність спецкурсів обраного навчального плану: семестри по порядку згори донизу, від них блоки й дисципліни.';
+      renderMap();if(!S.addOpen)renderAdd();return;
+    }
     var plans=Object.keys(S.plans).map(function(id){return Object.assign({id:id},S.plans[id]);})
       .filter(function(p){return typeof p.year==='number'&&p.year+3>=cur;})
       .sort(function(a,b){return S.newestFirst?b.year-a.year:a.year-b.year;});
@@ -394,6 +534,17 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     if(!S.editing)render();
   });
   paintView();
+  // Mode: table (staircase) or mind map, remembered per browser.
+  var modeBtn=document.getElementById('mode');
+  try{S.mode=localStorage.getItem('mode')==='map'?'map':'table';var mp=Number(localStorage.getItem('mapPlan'));if(mp)S.mapPlan=mp;}catch(e){S.mode='table';}
+  function paintMode(){modeBtn.textContent=S.mode==='map'?'Таблиця':'Карта навчання';viewBtn.hidden=S.mode==='map';}
+  modeBtn.addEventListener('click',function(){
+    S.mode=S.mode==='map'?'table':'map';S.mapCentered=null;paintMode();
+    try{localStorage.setItem('mode',S.mode);}catch(e){}
+    if(!S.editing)render();
+  });
+  paintMode();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(S.mode==='map'&&!S.editing)render();});
   sortBtn.addEventListener('click',function(){
     S.newestFirst=!S.newestFirst;paintSort();
     try{localStorage.setItem('planOrder',S.newestFirst?'desc':'asc');}catch(e){}
