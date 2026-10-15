@@ -12,6 +12,7 @@
 :root{
   --bg:#F4F6F9;--surface:#FFFFFF;--ink:#18202C;--muted:#5C6676;--line:#D9DEE6;
   --accent:#2C5BA6;--accent-soft:#E6EDF8;
+  --appr:#16A34A;--appr-ink:#FFFFFF;
   --ok:#1D7449;--ok-bg:#E3F3EA;--warn:#8F5B00;--warn-bg:#FAEFD9;--miss:#AE3F17;--miss-bg:#FBE8E0;
   --danger:#B42318;
   --f-display:"Unbounded",system-ui,sans-serif;
@@ -21,11 +22,13 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#11151C;--surface:#1A2029;--ink:#E5E9F0;--muted:#98A2B3;--line:#2C3441;
   --accent:#86A9E6;--accent-soft:#1D2A3E;
+  --appr:#22C55E;--appr-ink:#052E16;
   --ok:#6FCB98;--ok-bg:#15281E;--warn:#E6B25A;--warn-bg:#2D2413;--miss:#EF8A62;--miss-bg:#321F18;
   --danger:#F28B7F;color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#11151C;--surface:#1A2029;--ink:#E5E9F0;--muted:#98A2B3;--line:#2C3441;
   --accent:#86A9E6;--accent-soft:#1D2A3E;
+  --appr:#22C55E;--appr-ink:#052E16;
   --ok:#6FCB98;--ok-bg:#15281E;--warn:#E6B25A;--warn-bg:#2D2413;--miss:#EF8A62;--miss-bg:#321F18;
   --danger:#F28B7F;color-scheme:dark}
 [hidden]{display:none!important}
@@ -41,6 +44,7 @@ h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px)
 .p-ok,.st-ok .pill{color:var(--ok);background:var(--ok-bg)}
 .p-warn,.st-warn .pill{color:var(--warn);background:var(--warn-bg)}
 .p-missing,.st-missing .pill{color:var(--miss);background:var(--miss-bg)}
+.p-approved,.st-approved .pill{color:var(--appr-ink);background:var(--appr);font-weight:600}
 .p-draft,.st-draft .pill{color:var(--muted);background:var(--bg);border:1px solid var(--line)}
 .p-planned,.st-planned .pill{color:var(--accent);background:transparent;border:1px dashed var(--accent)}
 .hint{margin:0;color:var(--muted);font-size:13px}
@@ -70,6 +74,7 @@ h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px)
 .st-ok{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
 .st-warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
 .st-missing{border:1px dashed var(--miss)}
+.st-approved{border:2px solid var(--appr)}
 .st-draft{border:1px dashed var(--muted)}
 .st-draft .subj{color:var(--muted)}
 .st-planned{border:1px dashed color-mix(in srgb,var(--accent) 50%,var(--line))}
@@ -124,6 +129,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
       <p class="sub">ОП «Програмна інженерія», бакалавр. Блоки вільного вибору в межах спеціальності (ВКС/ВСС) за навчальними планами, починаючи з поточного навчального року.</p>
     </div>
     <div class="legend" aria-label="Статуси блоків">
+      <span class="pill p-approved">Затверджено</span>
       <span class="pill p-ok">Звірено з планом</span>
       <span class="pill p-warn">План не звірено</span>
       <span class="pill p-missing">Ймовірно пропущено</span>
@@ -144,7 +150,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
-  var ST={ok:'Звірено з планом',warn:'План не звірено',missing:'Ймовірно пропущено',draft:'Чернетка (копія)',planned:'Не сформовано'};
+  var ST={approved:'Затверджено',ok:'Звірено з планом',warn:'План не звірено',missing:'Ймовірно пропущено',draft:'Чернетка (копія)',planned:'Не сформовано'};
   var S={plans:{},slots:{},loadedP:false,loadedS:false,loadFail:false,canWrite:true,editing:null,draft:null,confirmDel:false,busy:false,addOpen:false};
   var now=new Date();
   var cur=now.getMonth()>=8?now.getFullYear():now.getFullYear()-1;
@@ -237,10 +243,13 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
         :h('p',{class:'nopt'},st==='missing'?'Блоку немає у службовій записці':'Дисципліни ще не визначено'));
   }
 
+  // "Затверджено" is offered only for blocks taught in the next academic year (or already approved).
+  function canApprove(d){return d.plan+Math.ceil(d.sem/2)-1===cur+1||d.status==='approved';}
+
   function editCard(){
     var d=S.draft;
     var sel=h('select',{id:'f-st',onchange:function(e){d.status=e.target.value;}},
-      Object.keys(ST).map(function(k){return h('option',{value:k,selected:d.status===k},ST[k]);}));
+      Object.keys(ST).filter(function(k){return k!=='approved'||canApprove(d);}).map(function(k){return h('option',{value:k,selected:d.status===k},ST[k]);}));
     var ol=h('div',{class:'fopts'});
     d.options.forEach(function(o,i){
       ol.append(h('div',{class:'forow'},
@@ -289,7 +298,7 @@ input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);b
     var options=d.options.map(function(o){return{subject:o.subject.trim(),teacher:o.teacher.trim(),moodle:String(o.moodle||'').trim()};}).filter(function(o){return o.subject;});
     var status=d.status;
     if(options.length&&status==='planned')status='ok';
-    if(!options.length&&(status==='ok'||status==='draft'))status='planned';
+    if(!options.length&&(status==='ok'||status==='draft'||status==='approved'))status='planned';
     var cr=(d.credits===''||d.credits==null)?null:Number(d.credits);
     var body={plan:d.plan,sem:d.sem,order:d.order,label:d.label.trim()||'Блок',credits:(cr!=null&&isFinite(cr))?cr:null,status:status,options:options};
     S.busy=true;render();
