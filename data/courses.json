@@ -735,13 +735,19 @@
       ]
     },
     "p2026-s5-5": {
-      "credits": 4,
-      "label": "ВКС 5",
-      "options": [],
-      "order": 5,
       "plan": 2026,
       "sem": 5,
-      "status": "planned"
+      "order": 5,
+      "label": "ВКС 5",
+      "credits": 4,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Інструментальні засоби веб-розробки мовою Python",
+          "teacher": "",
+          "moodle": ""
+        }
+      ]
     },
     "p2026-s6-6": {
       "credits": 4,
