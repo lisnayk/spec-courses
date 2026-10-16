@@ -386,13 +386,19 @@
       "status": "warn"
     },
     "p2024-s7-6": {
-      "credits": 4,
-      "label": "ВСС 6",
-      "options": [],
-      "order": 6,
       "plan": 2024,
       "sem": 7,
-      "status": "planned"
+      "order": 6,
+      "label": "ВСС 6",
+      "credits": 4,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Технології обробки природньої мови",
+          "teacher": "Кривохата А.Г.",
+          "moodle": ""
+        }
+      ]
     },
     "p2024-s8-7": {
       "plan": 2024,
