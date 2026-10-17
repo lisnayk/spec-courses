@@ -184,6 +184,9 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 .ov-chev{margin-left:auto;font-size:12px;color:var(--accent);white-space:nowrap}
 .ov-toggle:hover .ov-chev{text-decoration:underline}
 .ov.closed{padding:10px 14px}
+.map-copy{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.map-copy select{width:auto;max-width:100%;min-width:220px}
+.map-copy .ok{color:var(--ok)}
 #map-box .dim{opacity:.22}
 #map-box .hl tspan:first-child{fill:var(--accent)}
 .tcl{grid-template-columns:1fr}
@@ -239,6 +242,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   <section id="map" class="map" hidden>
     <div id="map-pick" class="map-pick" role="group" aria-label="Навчальний план"></div>
     <div id="map-years" class="yr-pick" role="group" aria-label="Навчальні роки плану"></div>
+    <div id="map-copy" class="map-copy"></div>
     <div id="map-stats" class="stats" aria-live="polite"></div>
     <div class="map-scroll"><div id="map-box"></div></div>
   </section>
@@ -263,7 +267,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     (function add(list){list.forEach(function(c){if(c==null||c===false)return;if(Array.isArray(c))return add(c);el.append(c.nodeType?c:document.createTextNode(String(c)));});})(kids);
     return el;
   }
-  var overview=document.getElementById('overview'),boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapYearsEl=document.getElementById('map-years'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
+  var overview=document.getElementById('overview'),boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapYearsEl=document.getElementById('map-years'),mapCopy=document.getElementById('map-copy'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
   var board=document.getElementById('board'),msg=document.getElementById('msg'),addSec=document.getElementById('addplan'),hint=document.getElementById('hint');
   function say(t){msg.textContent=t||'';msg.hidden=!t;}
   var api={op:function(body){
@@ -515,9 +519,68 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       chips,detail);
   }
 
+  // ---- Copy for Excel: same columns as the Excel export ----
+  var COPY_HEAD=['Рівень','План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle','Курс у Moodle'];
+  function copyRows(plan,slots){
+    var rows=[COPY_HEAD];
+    slots.slice().sort(function(a,b){return a.sem-b.sem||((a.order||0)-(b.order||0));}).forEach(function(s){
+      var course=Math.ceil(s.sem/2);
+      var base=[LEVELS[levelOf(plan.id)].degree,plan.year,plan.code||'',yl(plan.year+course-1),course,s.sem,s.label||'',
+        s.credits==null?'':s.credits,ST[s.status]||ST.planned];
+      var opts=Array.isArray(s.options)&&s.options.length?s.options:[{}];
+      opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle||'',moodleUrl(o.moodle)||'']));});
+    });
+    return rows;
+  }
+  function copyFallback(text){
+    var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');
+    ta.style.position='absolute';ta.style.left='-9999px';document.body.append(ta);ta.select();
+    var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    ta.remove();return ok?Promise.resolve():Promise.reject(new Error('copy failed'));
+  }
+  function copyTable(rows){
+    var tsv=rows.map(function(r){return r.map(function(v){return String(v).replace(/[\t\r\n]+/g,' ');}).join('\t');}).join('\r\n');
+    function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    var link=COPY_HEAD.length-1;
+    // mso-number-format "@" keeps codes like 6.1213 and years like 2026/27 as text in Excel.
+    var html='<table>'+rows.map(function(r,i){
+      return '<tr>'+r.map(function(v,j){
+        if(!i)return '<th>'+esc(v)+'</th>';
+        var cell=(j===link&&v)?'<a href="'+esc(v)+'">'+esc(v)+'</a>':esc(v);
+        return '<td style="mso-number-format:\'\\@\'">'+cell+'</td>';
+      }).join('')+'</tr>';
+    }).join('')+'</table>';
+    if(navigator.clipboard&&window.ClipboardItem){
+      return navigator.clipboard.write([new ClipboardItem({
+        'text/plain':new Blob([tsv],{type:'text/plain'}),'text/html':new Blob([html],{type:'text/html'})})])
+        .catch(function(){return navigator.clipboard.writeText(tsv);})
+        .catch(function(){return copyFallback(tsv);});
+    }
+    if(navigator.clipboard)return navigator.clipboard.writeText(tsv).catch(function(){return copyFallback(tsv);});
+    return copyFallback(tsv);
+  }
+  function renderCopy(plan,slots){
+    if(!slots.length)return;
+    var sorted=slots.slice().sort(function(a,b){return a.sem-b.sem||((a.order||0)-(b.order||0));});
+    if(S.copyWhat&&!sorted.some(function(x){return x.id===S.copyWhat;}))S.copyWhat='';
+    var sel=h('select',{id:'copy-what','aria-label':'Що копіювати',onchange:function(e){S.copyWhat=e.target.value;}},
+      h('option',{value:''},'Увесь перелік · '+sorted.length+' '+plural(sorted.length,'блок','блоки','блоків')),
+      sorted.map(function(x){
+        return h('option',{value:x.id,selected:S.copyWhat===x.id},x.sem+' сем. · '+(x.label||'Блок')+(x.credits?' · '+x.credits+' кр.':''));
+      }));
+    var note=h('span',{class:'tn','aria-live':'polite'});
+    var btn=h('button',{type:'button',class:'btn',onclick:function(){
+      var pick=sel.value,rows=copyRows(plan,pick?sorted.filter(function(x){return x.id===pick;}):sorted),n=rows.length-1;
+      copyTable(rows).then(function(){
+        note.className='tn ok';note.textContent='Скопійовано '+n+' '+plural(n,'рядок','рядки','рядків')+' із заголовком — вставте в Excel (Ctrl+V)';
+      },function(){note.className='tn';note.textContent='Не вдалося скопіювати. Спробуйте ще раз.';});
+    }},'Копіювати для Excel');
+    mapCopy.append(h('span',{class:'tn'},'Копіювати:'),sel,btn,note);
+  }
+
   function renderMap(){
     var plans=mapPlans();
-    mapPick.replaceChildren();mapYearsEl.replaceChildren();mapBox.replaceChildren();mapStats.replaceChildren();
+    mapPick.replaceChildren();mapYearsEl.replaceChildren();mapCopy.replaceChildren();mapBox.replaceChildren();mapStats.replaceChildren();
     if(!plans.length){mapBox.append(h('p',{class:'empty'},'Навчальних планів поки немає.'));return;}
     if(!S.mapPlan||!S.plans[S.mapPlan]||levelOf(S.mapPlan)!==S.level){
       var active=plans.filter(function(p){return planLast(p)>=cur;}).sort(function(a,b){return a.year-b.year;});
@@ -562,6 +625,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       if(sems.length)courses.push({course:c,year:plan.year+c-1,sems:sems,color:COURSE_COLORS[c-1]});
     }
     renderStats(plan,all);
+    renderCopy(plan,all);
     if(!courses.length){mapBox.append(h('p',{class:'empty'},mSel.length<pYears.length?'У вибраних роках плану '+plan.year+' немає блоків спецкурсів.':'У плані '+plan.year+' ще немає блоків спецкурсів.'));return;}
 
     // Layout: plan → course → semester → block → disciplines, all to the right, in study order top to bottom.
