@@ -706,14 +706,14 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       function(e){S.busy=false;S.moving=null;fail(e);render();});
   }
 
-  // Teachers of one block with the number of their disciplines in it (co-taught disciplines count for each).
+  // Teachers of one block, alphabetically, with the number of their disciplines in it (co-taught disciplines count for each).
   function blockTeachers(opts){
     var load={};
     opts.forEach(function(o){
       String(o.teacher||'').split(',').map(function(t){return t.trim();}).filter(Boolean).forEach(function(t){load[t]=(load[t]||0)+1;});
     });
     var list=Object.keys(load).map(function(t){return [t,load[t]];})
-      .sort(function(a,b){return b[1]-a[1]||a[0].localeCompare(b[0],'uk');});
+      .sort(function(a,b){return a[0].localeCompare(b[0],'uk');});
     if(!list.length)return null;
     return h('div',{class:'btch','aria-label':'Викладачі блоку'},list.map(function(t){
       return h('span',{class:'bt'+(t[1]>1?' hi':''),title:t[0]+': '+t[1]+' '+plural(t[1],'дисципліна','дисципліни','дисциплін')+' у блоці'},
