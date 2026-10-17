@@ -1,0 +1,12 @@
+{
+  "name": "spec-courses",
+  "private": true,
+  "type": "module",
+  "description": "Спецкурси за вибором ОП «Програмна інженерія»",
+  "scripts": {
+    "dev": "node dev-server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,11 @@
+# Source documents (curricula, memos) stay local
+src/
+*.docx
+*.xls
+*.xlsx
+
+node_modules/
+.vercel/
+.env*
+
+.claude/

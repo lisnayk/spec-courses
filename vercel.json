@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "git rev-parse -q --verify HEAD^ >/dev/null && git diff --quiet HEAD^ HEAD -- . ':(exclude)data'",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }]
+    }
+  ]
+}

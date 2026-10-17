@@ -1,0 +1,1126 @@
+{
+  "plans": {
+    "p2022": {
+      "year": 2022,
+      "code": "",
+      "note": "",
+      "pdf": "plans/plan-2022-2023.pdf",
+      "level": "bachelor",
+      "courses": 4,
+      "sems": 8,
+      "program": "Програмна інженерія"
+    },
+    "p2023": {
+      "code": "6.1213",
+      "note": "",
+      "year": 2023,
+      "pdf": "plans/plan-2022-2023.pdf",
+      "level": "bachelor",
+      "courses": 4,
+      "sems": 8,
+      "program": "Програмна інженерія"
+    },
+    "p2024": {
+      "code": "6.1214",
+      "note": "",
+      "year": 2024,
+      "pdf": "plans/plan-2024.pdf",
+      "level": "bachelor",
+      "courses": 4,
+      "sems": 8,
+      "program": "Програмна інженерія"
+    },
+    "p2025": {
+      "code": "6.F2.25",
+      "note": "",
+      "year": 2025,
+      "pdf": "plans/plan-2025.pdf",
+      "level": "bachelor",
+      "courses": 4,
+      "sems": 8,
+      "program": "Програмна інженерія"
+    },
+    "p2026": {
+      "code": "6.F2.26",
+      "note": "",
+      "year": 2026,
+      "pdf": "plans/plan-2026.pdf",
+      "level": "bachelor",
+      "courses": 4,
+      "sems": 8,
+      "program": "Програмна інженерія"
+    },
+    "m2025": {
+      "year": 2025,
+      "code": "7.F2.25",
+      "note": "",
+      "pdf": "plans/master-2025.pdf",
+      "level": "master",
+      "courses": 2,
+      "sems": 3,
+      "program": "Інженерія програмного забезпечення"
+    },
+    "m2026": {
+      "year": 2026,
+      "code": "7.F2.26",
+      "note": "",
+      "pdf": "plans/master-2026.pdf",
+      "level": "master",
+      "courses": 2,
+      "sems": 3,
+      "program": "Інженерія програмного забезпечення"
+    }
+  },
+  "slots": {
+    "p2022-s5-1": {
+      "credits": 5,
+      "label": "ВСС 1",
+      "options": [],
+      "order": 1,
+      "plan": 2022,
+      "sem": 5,
+      "status": "planned"
+    },
+    "p2022-s5-2": {
+      "credits": 5,
+      "label": "ВСС 2",
+      "options": [],
+      "order": 2,
+      "plan": 2022,
+      "sem": 5,
+      "status": "planned"
+    },
+    "p2022-s6-3": {
+      "credits": 5,
+      "label": "ВСС 3",
+      "options": [],
+      "order": 3,
+      "plan": 2022,
+      "sem": 6,
+      "status": "planned"
+    },
+    "p2022-s7-4": {
+      "credits": 5,
+      "label": "ВСС 4",
+      "options": [],
+      "order": 4,
+      "plan": 2022,
+      "sem": 7,
+      "status": "planned"
+    },
+    "p2022-s8-5": {
+      "credits": 5,
+      "label": "ВСС 5",
+      "options": [],
+      "order": 5,
+      "plan": 2022,
+      "sem": 8,
+      "status": "planned"
+    },
+    "p2022-s8-6": {
+      "credits": 5,
+      "label": "ВСС 6",
+      "options": [],
+      "order": 6,
+      "plan": 2022,
+      "sem": 8,
+      "status": "planned"
+    },
+    "p2023-s5-1": {
+      "credits": 5,
+      "label": "ВСС 1",
+      "options": [
+        {
+          "subject": "Візуальні мови програмування",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Візуалізація чисельних даних",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Засоби машинного навчання",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
+      "order": 1,
+      "plan": 2023,
+      "sem": 5,
+      "status": "ok"
+    },
+    "p2023-s5-2": {
+      "credits": 5,
+      "label": "ВСС 2",
+      "options": [
+        {
+          "subject": "Комп'ютерна дискретна математика",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Мови програмування мобільних пристроїв",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Основи машинного навчання",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
+      "order": 2,
+      "plan": 2023,
+      "sem": 5,
+      "status": "ok"
+    },
+    "p2023-s6-3": {
+      "credits": 5,
+      "label": "ВСС 3",
+      "options": [
+        {
+          "subject": "JavaScript фреймворки",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Основи автоматизованого проєктування складних об'єктів і систем",
+          "teacher": "",
+          "moodle": ""
+        },
+        {
+          "subject": "Нейронні мережі",
+          "teacher": "",
+          "moodle": ""
+        }
+      ],
+      "order": 3,
+      "plan": 2023,
+      "sem": 6,
+      "status": "ok"
+    },
+    "p2023-s7-1": {
+      "plan": 2023,
+      "sem": 7,
+      "order": 4,
+      "label": "ВСС 4",
+      "credits": 5,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Програмування комп'ютерної графіки у веб",
+          "teacher": "Мухін В.В.",
+          "moodle": "22"
+        },
+        {
+          "subject": "Хмарні технології в розробці програмного забезпечення",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "16265"
+        },
+        {
+          "subject": "Прикладні задачі машинного навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "4964"
+        }
+      ]
+    },
+    "p2023-s8-1": {
+      "plan": 2023,
+      "sem": 8,
+      "order": 5,
+      "label": "ВСС 5",
+      "credits": 5,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Корпоративні технології Java",
+          "teacher": "Горбенко В.І.",
+          "moodle": "15651"
+        },
+        {
+          "subject": "Фреймворки для мультиплатформної розробки",
+          "teacher": "Мильцев О.М.",
+          "moodle": "16262"
+        },
+        {
+          "subject": "Глибинне навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9295"
+        }
+      ]
+    },
+    "p2023-s8-2": {
+      "credits": 5,
+      "label": "ВСС 6",
+      "options": [
+        {
+          "moodle": "6097",
+          "subject": "Прикладні задачі бізнес-аналізу даних",
+          "teacher": "Горбенко В.І."
+        },
+        {
+          "moodle": "17130",
+          "subject": "Основи Kubernetes",
+          "teacher": "Лісняк А.О."
+        },
+        {
+          "moodle": "15708",
+          "subject": "Технології Інтернет речей",
+          "teacher": "Мухін В.В."
+        }
+      ],
+      "order": 6,
+      "plan": 2023,
+      "sem": 8,
+      "status": "ok"
+    },
+    "p2024-s4-1": {
+      "credits": 3,
+      "label": "ВСС 1",
+      "options": [],
+      "order": 1,
+      "plan": 2024,
+      "sem": 4,
+      "status": "planned"
+    },
+    "p2024-s5-2": {
+      "credits": 6,
+      "label": "ВСС 2",
+      "options": [
+        {
+          "moodle": "17143",
+          "subject": "Нереляційні бази даних",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "16264",
+          "subject": "Візуалізація в інтелектуальному аналізі даних",
+          "teacher": "Д'яченко Н.М., Мухін В.В."
+        },
+        {
+          "moodle": "16253",
+          "subject": "Інженерія даних",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 2,
+      "plan": 2024,
+      "sem": 5,
+      "status": "ok"
+    },
+    "p2024-s5-3": {
+      "plan": 2024,
+      "sem": 5,
+      "order": 3,
+      "label": "ВСС 3",
+      "credits": 6,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Комп'ютерне моделювання засобами Python",
+          "teacher": "Гребенюк С.М.",
+          "moodle": "16270"
+        },
+        {
+          "subject": "Мови програмування мобільних пристроїв",
+          "teacher": "Кривий Я.В.",
+          "moodle": "5775"
+        },
+        {
+          "subject": "Основи машинного навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9508"
+        }
+      ]
+    },
+    "p2024-s6-4": {
+      "credits": 5,
+      "label": "ВСС 4",
+      "options": [
+        {
+          "moodle": "15652",
+          "subject": "JavaScript фреймворки",
+          "teacher": "Кривий Я.В., Лісняк А.О."
+        },
+        {
+          "moodle": "17871",
+          "subject": "Технології Big Data",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "9512",
+          "subject": "Нейронні мережі",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 4,
+      "plan": 2024,
+      "sem": 6,
+      "status": "ok"
+    },
+    "p2024-s7-5": {
+      "plan": 2024,
+      "sem": 7,
+      "order": 5,
+      "label": "ВСС 5",
+      "credits": 4,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Програмування комп'ютерної графіки у веб",
+          "teacher": "Мухін В.В.",
+          "moodle": "22",
+          "state": "green"
+        },
+        {
+          "subject": "Хмарні технології в розробці програмного забезпечення",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "16265",
+          "state": "green"
+        },
+        {
+          "subject": "Прикладні задачі машинного навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "4964",
+          "state": "green"
+        }
+      ]
+    },
+    "p2024-s7-6": {
+      "plan": 2024,
+      "sem": 7,
+      "order": 6,
+      "label": "ВСС 6",
+      "credits": 4,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Технології обробки природньої мови",
+          "teacher": "Кривохата А.Г.",
+          "moodle": "18763",
+          "state": ""
+        },
+        {
+          "subject": "Python фреймворки",
+          "teacher": "Міхайлуца О.М.",
+          "moodle": "",
+          "state": "red"
+        },
+        {
+          "subject": "Теорія інформації та кодування даних",
+          "teacher": "Зинеєв І.В.",
+          "moodle": "99",
+          "state": "yellow"
+        }
+      ]
+    },
+    "p2024-s8-7": {
+      "plan": 2024,
+      "sem": 8,
+      "order": 7,
+      "label": "ВСС 7",
+      "credits": 6,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Корпоративні технології Java",
+          "teacher": "Горбенко В.І.",
+          "moodle": "15651",
+          "state": "green"
+        },
+        {
+          "subject": "Фреймворки для мультиплатформної розробки",
+          "teacher": "Мильцев О.М.",
+          "moodle": "16262",
+          "state": "green"
+        },
+        {
+          "subject": "Глибинне навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9295",
+          "state": "green"
+        }
+      ]
+    },
+    "p2024-s8-8": {
+      "plan": 2024,
+      "sem": 8,
+      "order": 8,
+      "label": "ВСС 8",
+      "credits": 6,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Прикладні задачі бізнес-аналізу даних",
+          "teacher": "Горбенко В.І.",
+          "moodle": "6097",
+          "state": ""
+        },
+        {
+          "subject": "Основи Kubernetes",
+          "teacher": "Лісняк А.О.",
+          "moodle": "17130",
+          "state": ""
+        },
+        {
+          "subject": "Технології Інтернет речей",
+          "teacher": "Мухін В.В.",
+          "moodle": "15708",
+          "state": ""
+        }
+      ]
+    },
+    "p2025-s3-1": {
+      "credits": 4,
+      "label": "ВКС 1",
+      "options": [
+        {
+          "moodle": "2476",
+          "subject": "Візуальні мови програмування",
+          "teacher": "Красікова І.В., Ткаченко І.Г."
+        },
+        {
+          "moodle": "17144",
+          "subject": "Програмування мовою Python",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "3921",
+          "subject": "Основи автоматизованого проєктування складних об'єктів і систем",
+          "teacher": "Гребенюк С.М."
+        }
+      ],
+      "order": 1,
+      "plan": 2025,
+      "sem": 3,
+      "status": "ok"
+    },
+    "p2025-s5-2": {
+      "plan": 2025,
+      "sem": 5,
+      "order": 2,
+      "label": "ВКС 2",
+      "credits": 4,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Нереляційні бази даних",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "17143",
+          "state": "green"
+        },
+        {
+          "subject": "Візуалізація в інтелектуальному аналізі даних",
+          "teacher": "Д'яченко Н.М., Мухін В.В.",
+          "moodle": "16264",
+          "state": "yellow"
+        },
+        {
+          "subject": "Інженерія даних",
+          "teacher": "Кудін О.В.",
+          "moodle": "16253",
+          "state": "green"
+        }
+      ]
+    },
+    "p2025-s5-3": {
+      "plan": 2025,
+      "sem": 5,
+      "order": 3,
+      "label": "ВКС 3",
+      "credits": 4,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Комп'ютерне моделювання засобами Python",
+          "teacher": "Гребенюк С.М.",
+          "moodle": "16270",
+          "state": "green"
+        },
+        {
+          "subject": "Мови програмування мобільних пристроїв",
+          "teacher": "Кривий Я.В.",
+          "moodle": "5775",
+          "state": "green"
+        },
+        {
+          "subject": "Основи машинного навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9508",
+          "state": "green"
+        }
+      ]
+    },
+    "p2025-s6-4": {
+      "plan": 2025,
+      "sem": 6,
+      "order": 4,
+      "label": "ВКС 4",
+      "credits": 6,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "JavaScript фреймворки",
+          "teacher": "Кривий Я.В.",
+          "moodle": "15652",
+          "state": ""
+        },
+        {
+          "subject": "Технології Big Data",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "17871",
+          "state": ""
+        },
+        {
+          "subject": "Нейронні мережі",
+          "teacher": "Кудін О.В.",
+          "moodle": "9512",
+          "state": ""
+        }
+      ]
+    },
+    "p2025-s7-5": {
+      "credits": 5,
+      "label": "ВКС 5",
+      "options": [
+        {
+          "moodle": "22",
+          "subject": "Програмування комп'ютерної графіки у веб",
+          "teacher": "Мухін В.В."
+        },
+        {
+          "moodle": "16265",
+          "subject": "Хмарні технології в розробці програмного забезпечення",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "4964",
+          "subject": "Прикладні задачі машинного навчання",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 5,
+      "plan": 2025,
+      "sem": 7,
+      "status": "draft"
+    },
+    "p2025-s7-6": {
+      "plan": 2025,
+      "sem": 7,
+      "order": 6,
+      "label": "ВКС 6",
+      "credits": 5,
+      "status": "draft",
+      "options": []
+    },
+    "p2025-s8-7": {
+      "plan": 2025,
+      "sem": 8,
+      "order": 7,
+      "label": "ВКС 7",
+      "credits": 6,
+      "status": "draft",
+      "options": [
+        {
+          "subject": "Корпоративні технології Java",
+          "teacher": "Горбенко В.І.",
+          "moodle": "15651"
+        },
+        {
+          "subject": "Фреймворки для мультиплатформної розробки",
+          "teacher": "Мильцев О.М.",
+          "moodle": "16262"
+        },
+        {
+          "subject": "Глибинне навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9295"
+        }
+      ]
+    },
+    "p2025-s8-8": {
+      "credits": 6,
+      "label": "ВКС 8",
+      "options": [
+        {
+          "moodle": "6097",
+          "subject": "Прикладні задачі бізнес-аналізу даних",
+          "teacher": "Горбенко В.І."
+        },
+        {
+          "moodle": "17130",
+          "subject": "Основи Kubernetes",
+          "teacher": "Лісняк А.О."
+        },
+        {
+          "moodle": "15708",
+          "subject": "Технології Інтернет речей",
+          "teacher": "Мухін В.В."
+        }
+      ],
+      "order": 8,
+      "plan": 2025,
+      "sem": 8,
+      "status": "draft"
+    },
+    "p2026-s3-1": {
+      "plan": 2026,
+      "sem": 3,
+      "order": 1,
+      "label": "ВКС 1",
+      "credits": 3,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Візуальні мови програмування",
+          "teacher": "Красікова І.В., Ткаченко І.Г.",
+          "moodle": "2476",
+          "state": "green"
+        },
+        {
+          "subject": "Технології розробки ігрових застосунків",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "18761",
+          "state": "yellow"
+        },
+        {
+          "subject": "Основи автоматизованого проєктування складних об'єктів і систем",
+          "teacher": "Гребенюк С.М.",
+          "moodle": "3921",
+          "state": "green"
+        }
+      ]
+    },
+    "p2026-s4-2": {
+      "plan": 2026,
+      "sem": 4,
+      "order": 2,
+      "label": "ВКС 2",
+      "credits": 3,
+      "status": "warn",
+      "options": [
+        {
+          "subject": "Інженерія harness",
+          "teacher": "Лісняк А.О.",
+          "moodle": "18738",
+          "state": "yellow"
+        },
+        {
+          "subject": "Програмування мовою Python",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "17144",
+          "state": "green"
+        },
+        {
+          "subject": "Табличні процесори для аналізу даних",
+          "teacher": "Кривохата А.Г.",
+          "moodle": "18764",
+          "state": "yellow"
+        }
+      ]
+    },
+    "p2026-s5-3": {
+      "credits": 4,
+      "label": "ВКС 3",
+      "options": [
+        {
+          "moodle": "17143",
+          "subject": "Нереляційні бази даних",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "16264",
+          "subject": "Візуалізація в інтелектуальному аналізі даних",
+          "teacher": "Д'яченко Н.М., Мухін В.В."
+        },
+        {
+          "moodle": "16253",
+          "subject": "Інженерія даних",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 3,
+      "plan": 2026,
+      "sem": 5,
+      "status": "draft"
+    },
+    "p2026-s5-4": {
+      "plan": 2026,
+      "sem": 5,
+      "order": 4,
+      "label": "ВКС 4",
+      "credits": 4,
+      "status": "draft",
+      "options": [
+        {
+          "subject": "Комп'ютерне моделювання засобами Python",
+          "teacher": "Гребенюк С.М.",
+          "moodle": "16270"
+        },
+        {
+          "subject": "Мови програмування мобільних пристроїв",
+          "teacher": "Кривий Я.В.",
+          "moodle": "5775"
+        },
+        {
+          "subject": "Основи машинного навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9508"
+        }
+      ]
+    },
+    "p2026-s5-5": {
+      "plan": 2026,
+      "sem": 5,
+      "order": 5,
+      "label": "ВКС 5",
+      "credits": 4,
+      "status": "draft",
+      "options": [
+        {
+          "subject": "Інструментальні засоби веб-розробки мовою Python",
+          "teacher": "Міхайлуца О.М.",
+          "moodle": "",
+          "state": ""
+        },
+        {
+          "subject": "Технологія Java (Advanced)",
+          "teacher": "Коломоєць Г.П.",
+          "moodle": "16444",
+          "state": ""
+        }
+      ]
+    },
+    "p2026-s6-6": {
+      "credits": 4,
+      "label": "ВКС 6",
+      "options": [
+        {
+          "moodle": "15652",
+          "subject": "JavaScript фреймворки",
+          "teacher": "Кривий Я.В., Лісняк А.О."
+        },
+        {
+          "moodle": "17871",
+          "subject": "Технології Big Data",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "9512",
+          "subject": "Нейронні мережі",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 6,
+      "plan": 2026,
+      "sem": 6,
+      "status": "draft"
+    },
+    "p2026-s7-7": {
+      "credits": 5,
+      "label": "ВКС 7",
+      "options": [
+        {
+          "moodle": "22",
+          "subject": "Програмування комп'ютерної графіки у веб",
+          "teacher": "Мухін В.В."
+        },
+        {
+          "moodle": "16265",
+          "subject": "Хмарні технології в розробці програмного забезпечення",
+          "teacher": "Лимаренко Ю.О."
+        },
+        {
+          "moodle": "4964",
+          "subject": "Прикладні задачі машинного навчання",
+          "teacher": "Кудін О.В."
+        }
+      ],
+      "order": 7,
+      "plan": 2026,
+      "sem": 7,
+      "status": "draft"
+    },
+    "p2026-s7-8": {
+      "credits": 5,
+      "label": "ВКС 8",
+      "options": [],
+      "order": 8,
+      "plan": 2026,
+      "sem": 7,
+      "status": "planned"
+    },
+    "p2026-s8-9": {
+      "plan": 2026,
+      "sem": 8,
+      "order": 9,
+      "label": "ВКС 9",
+      "credits": 5,
+      "status": "draft",
+      "options": [
+        {
+          "subject": "Корпоративні технології Java",
+          "teacher": "Горбенко В.І.",
+          "moodle": "15651"
+        },
+        {
+          "subject": "Фреймворки для мультиплатформної розробки",
+          "teacher": "Мильцев О.М.",
+          "moodle": "16262"
+        },
+        {
+          "subject": "Глибинне навчання",
+          "teacher": "Кудін О.В.",
+          "moodle": "9295"
+        }
+      ]
+    },
+    "p2026-s8-10": {
+      "credits": 5,
+      "label": "ВКС 10",
+      "options": [
+        {
+          "moodle": "6097",
+          "subject": "Прикладні задачі бізнес-аналізу даних",
+          "teacher": "Горбенко В.І."
+        },
+        {
+          "moodle": "17130",
+          "subject": "Основи Kubernetes",
+          "teacher": "Лісняк А.О."
+        },
+        {
+          "moodle": "15708",
+          "subject": "Технології Інтернет речей",
+          "teacher": "Мухін В.В."
+        }
+      ],
+      "order": 10,
+      "plan": 2026,
+      "sem": 8,
+      "status": "draft"
+    },
+    "m2025-s3-1": {
+      "plan": 2025,
+      "sem": 3,
+      "order": 1,
+      "label": "ВКС 1",
+      "credits": 4,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Сучасні технології розробки мобільних додатків",
+          "teacher": "Горбенко В.І.",
+          "moodle": "7430"
+        },
+        {
+          "subject": "Сучасна криптографія",
+          "teacher": "Зіновєєв І.В.",
+          "moodle": "97"
+        },
+        {
+          "subject": "ІТ-інфраструктура в хмарі",
+          "teacher": "Лісняк А.О.",
+          "moodle": "16258"
+        }
+      ]
+    },
+    "m2025-s3-2": {
+      "plan": 2025,
+      "sem": 3,
+      "order": 2,
+      "label": "ВКС 2",
+      "credits": 4,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Програмування вбудованих систем",
+          "teacher": "Мухін В.В.",
+          "moodle": "15502"
+        },
+        {
+          "subject": "Інженерія систем обробки природної мови",
+          "teacher": "Чопорова О.В.",
+          "moodle": "16261"
+        },
+        {
+          "subject": "Тестування мобільних додатків",
+          "teacher": "Кудін О.В.",
+          "moodle": "7904"
+        }
+      ]
+    },
+    "m2025-s3-3": {
+      "plan": 2025,
+      "sem": 3,
+      "order": 3,
+      "label": "ВКС 3",
+      "credits": 5,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Протоколи систем управління інформаційною безпекою",
+          "teacher": "Горбенко В.І.",
+          "moodle": "12033"
+        },
+        {
+          "subject": "Хмарні технології в інженерії даних",
+          "teacher": "Кудін О.В.",
+          "moodle": "16251"
+        },
+        {
+          "subject": "Технології безпеки хмарних сервісів",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "16266"
+        }
+      ]
+    },
+    "m2025-s3-4": {
+      "plan": 2025,
+      "sem": 3,
+      "order": 4,
+      "label": "ВКС 4",
+      "credits": 5,
+      "status": "ok",
+      "options": [
+        {
+          "subject": "Сучасні каркаси вебдодатків",
+          "teacher": "Лісняк А.О.",
+          "moodle": "7615"
+        },
+        {
+          "subject": "Хмарні технології в машинному навчанні",
+          "teacher": "Кудін О.В.",
+          "moodle": "16252"
+        },
+        {
+          "subject": "Теорія інформації та кодування даних",
+          "teacher": "Зіновєєв І.В.",
+          "moodle": "99"
+        }
+      ]
+    },
+    "m2026-s3-1": {
+      "plan": 2026,
+      "sem": 3,
+      "order": 1,
+      "label": "ВКС 1",
+      "credits": 6,
+      "status": "approved",
+      "options": [
+        {
+          "subject": "Сучасні технології розробки мобільних додатків",
+          "teacher": "Горбенко В.І.",
+          "moodle": "7430"
+        },
+        {
+          "subject": "Сучасна криптографія",
+          "teacher": "Скрипник І.А.",
+          "moodle": "8632"
+        },
+        {
+          "subject": "ІТ-інфраструктура в хмарі",
+          "teacher": "Лісняк А.О.",
+          "moodle": "16258"
+        },
+        {
+          "subject": "Програмне забезпечення систем автоматичного проектування",
+          "teacher": "Коломоєць Г.П.",
+          "moodle": "9722"
+        },
+        {
+          "subject": "Технології створення Web-застосунків",
+          "teacher": "Жуков О.О.",
+          "moodle": "9710"
+        },
+        {
+          "subject": "Хмарні технології в машинному навчанні",
+          "teacher": "Кудін О.В.",
+          "moodle": "16252"
+        }
+      ]
+    },
+    "m2026-s3-2": {
+      "plan": 2026,
+      "sem": 3,
+      "order": 2,
+      "label": "ВКС 2",
+      "credits": 6,
+      "status": "approved",
+      "options": [
+        {
+          "subject": "Програмування вбудованих систем",
+          "teacher": "Мухін В.В.",
+          "moodle": "15502"
+        },
+        {
+          "subject": "Тестування мобільних додатків",
+          "teacher": "Коломоєць Г.П.",
+          "moodle": "99"
+        },
+        {
+          "subject": "Основи сучасних мовних моделей",
+          "teacher": "Кудін О.В.",
+          "moodle": "18730"
+        },
+        {
+          "subject": "Основи індустріального Інтернету речей",
+          "teacher": "Жуков О.О.",
+          "moodle": "17122"
+        },
+        {
+          "subject": "Комп’ютерне моделювання економічних задач",
+          "teacher": "Безверхий А.І.",
+          "moodle": "9711"
+        },
+        {
+          "subject": "Сучасні каркаси вебдодатків",
+          "teacher": "Лісняк А.О.",
+          "moodle": "7615"
+        }
+      ]
+    },
+    "m2026-s3-3": {
+      "plan": 2026,
+      "sem": 3,
+      "order": 3,
+      "label": "ВКС 3",
+      "credits": 6,
+      "status": "approved",
+      "options": [
+        {
+          "subject": "Протоколи систем управління інформаційною безпекою",
+          "teacher": "Горбенко В.І.",
+          "moodle": "12033"
+        },
+        {
+          "subject": "Хмарні технології в інженерії даних",
+          "teacher": "Кудін О.В.",
+          "moodle": "16251"
+        },
+        {
+          "subject": "Технології безпеки хмарних сервісів",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "16266"
+        },
+        {
+          "subject": "Основи етичного хакінгу",
+          "teacher": "Жуков О.О.",
+          "moodle": "17121"
+        },
+        {
+          "subject": "Сучасні комп’ютерні графічні системи",
+          "teacher": "Безверхий А.І.",
+          "moodle": "9717"
+        },
+        {
+          "subject": "Сучасні технології мобільного програмування",
+          "teacher": "Коломоєць Г.П.",
+          "moodle": "16075"
+        }
+      ]
+    }
+  }
+}
