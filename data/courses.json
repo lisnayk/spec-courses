@@ -531,29 +531,29 @@
       ]
     },
     "p2025-s6-4": {
-      "credits": 6,
-      "label": "ВКС 4",
-      "options": [
-        {
-          "moodle": "15652",
-          "subject": "JavaScript фреймворки",
-          "teacher": "Кривий Я.В., Лісняк А.О."
-        },
-        {
-          "moodle": "17871",
-          "subject": "Технології Big Data",
-          "teacher": "Лимаренко Ю.О."
-        },
-        {
-          "moodle": "9512",
-          "subject": "Нейронні мережі",
-          "teacher": "Кудін О.В."
-        }
-      ],
-      "order": 4,
       "plan": 2025,
       "sem": 6,
-      "status": "draft"
+      "order": 4,
+      "label": "ВКС 4",
+      "credits": 6,
+      "status": "draft",
+      "options": [
+        {
+          "subject": "JavaScript фреймворки",
+          "teacher": "Кривий Я.В.",
+          "moodle": "15652"
+        },
+        {
+          "subject": "Технології Big Data",
+          "teacher": "Лимаренко Ю.О.",
+          "moodle": "17871"
+        },
+        {
+          "subject": "Нейронні мережі",
+          "teacher": "Кудін О.В.",
+          "moodle": "9512"
+        }
+      ]
     },
     "p2025-s7-5": {
       "credits": 5,
