@@ -166,6 +166,20 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 .ovl li{font-size:13px;display:flex;gap:6px;align-items:baseline}
 .lt{font-size:10px;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
 .lt.m{background:var(--warn-bg);color:var(--warn)}
+.yr-pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.yr-pick .chip.cur{border-color:var(--accent)}
+.yr-pick .chip.cur[aria-pressed="true"]{border-color:var(--accent)}
+.yr-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.ytab-wrap{overflow-x:auto}
+.ytab{border-collapse:collapse;font-size:13px;min-width:520px;font-variant-numeric:tabular-nums}
+.ytab th{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 14px 6px 8px;border-bottom:1px solid var(--line)}
+.ytab td{padding:5px 14px 5px 8px;border-bottom:1px dashed var(--line)}
+.ytab td+td,.ytab th+th{text-align:right}
+.ytab tbody tr{cursor:pointer}
+.ytab tbody tr:hover td{background:var(--bg)}
+.ytab tbody tr.sel td{background:var(--accent-soft)}
+.ytab tbody tr:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ytab .tag{margin-left:8px}
 @media (prefers-reduced-motion:no-preference){.slot,.btn{transition:border-color .15s,box-shadow .15s}}
 </style>
 </head>
@@ -325,18 +339,31 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         st.teacherList.length?teachers:h('p',{class:'nopt'},'Викладачів ще не вказано')));
   }
 
-  // ---- Overview on the main page: both levels, current and next academic year only ----
+  // ---- Overview on the main page: both levels, for the academic years the viewer selects ----
   function normSubj(t){return String(t||'').toLowerCase().replace(/[’ʼ`]/g,"'").replace(/\s+/g,' ').trim();}
-  function overviewStats(){
+  function slotYear(s){return s.plan+Math.ceil(s.sem/2)-1;}
+  function dataYears(){
+    var ys={};Object.keys(S.slots).forEach(function(k){ys[slotYear(S.slots[k])]=1;});
+    var list=Object.keys(ys).map(Number).sort(function(a,b){return a-b;});
+    return list.length?list:[cur,cur+1];
+  }
+  // Selected years: remembered per browser; default is the current and the next academic year.
+  function selectedYears(all){
+    if(S.ovYears===undefined){try{S.ovYears=JSON.parse(localStorage.getItem('ovYears'));}catch(e){S.ovYears=null;}}
+    var sel=(Array.isArray(S.ovYears)?S.ovYears:[cur,cur+1]).filter(function(y){return all.indexOf(y)>=0;});
+    return sel.length?sel:[all.indexOf(cur)>=0?cur:all[all.length-1]];
+  }
+  function overviewStats(years){
     var o={plans:{bachelor:0,master:0},blocks:{bachelor:0,master:0},subj:{},teach:{}};
-    // A plan counts if any of its courses falls in [cur, cur+1]; a block counts if it is taught in those years.
+    var ys=Object.keys(years).map(Number);
+    // A plan counts if any of its courses falls in a selected year; a block counts if it is taught in one.
     Object.keys(S.plans).forEach(function(id){
       var p=Object.assign({id:id},S.plans[id]);
-      if(typeof p.year==='number'&&p.year<=cur+1&&planLast(p)>=cur)o.plans[levelOf(id)]++;
+      if(typeof p.year==='number'&&ys.some(function(y){return p.year<=y&&planLast(p)>=y;}))o.plans[levelOf(id)]++;
     });
     Object.keys(S.slots).forEach(function(id){
-      var s=S.slots[id],lv=levelOf(id),y=s.plan+Math.ceil(s.sem/2)-1;
-      if(y<cur||y>cur+1)return;
+      var s=S.slots[id],lv=levelOf(id);
+      if(!years[slotYear(s)])return;
       o.blocks[lv]++;
       (Array.isArray(s.options)?s.options:[]).forEach(function(op){
         if(!op.subject)return;
@@ -356,24 +383,60 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     return o;
   }
   function renderOverview(){
-    var o=overviewStats();
+    var all=dataYears(),sel=selectedYears(all),set={};
+    sel.forEach(function(y){set[y]=1;});
+    var o=overviewStats(set);
+    function setYears(list){
+      S.ovYears=list.slice().sort(function(a,b){return a-b;});
+      try{localStorage.setItem('ovYears',JSON.stringify(S.ovYears));}catch(e){}
+      renderOverview();
+    }
     function tile(value,label,note){return h('div',{class:'tile'},h('div',{class:'tv'},String(value)),h('div',{class:'tl'},label),note?h('div',{class:'tn'},note):null);}
     function split(x){return 'бак '+x.bachelor+' · маг '+x.master;}
+
+    var picker=h('div',{class:'yr-pick',role:'group','aria-label':'Навчальні роки для статистики'},
+      all.map(function(y){
+        return h('button',{type:'button',class:'chip'+(y===cur?' cur':''),'aria-pressed':String(!!set[y]),
+          title:y===cur?'Поточний навчальний рік':null,
+          onclick:function(){
+            var n=sel.slice(),i=n.indexOf(y);
+            if(i>=0){if(n.length>1)n.splice(i,1);}else n.push(y);
+            setYears(n);
+          }},yl(y));
+      }),
+      h('span',{class:'yr-sep','aria-hidden':'true'}),
+      h('button',{type:'button',class:'lnk',onclick:function(){setYears([cur,cur+1].filter(function(y){return all.indexOf(y)>=0;}));}},'поточний і наступний'),
+      h('button',{type:'button',class:'lnk',onclick:function(){setYears(all);}},'усі роки'));
+
     var tiles=h('div',{class:'tiles'},
       tile(o.plans.bachelor+o.plans.master,plural(o.plans.bachelor+o.plans.master,'навчальний план','навчальні плани','навчальних планів'),split(o.plans)),
       tile(o.blocks.bachelor+o.blocks.master,plural(o.blocks.bachelor+o.blocks.master,'блок','блоки','блоків'),split(o.blocks)),
       tile(o.subjTotal,plural(o.subjTotal,'унікальна дисципліна','унікальні дисципліни','унікальних дисциплін'),split(o.subjBy)),
       tile(o.teachers.length,plural(o.teachers.length,'викладач','викладачі','викладачів')));
+
+    // Year-by-year breakdown; clicking a row shows statistics for that year only.
+    var byYear=h('div',{class:'ytab-wrap'},h('table',{class:'ytab'},
+      h('thead',null,h('tr',null,h('th',null,'Навчальний рік'),h('th',null,'Блоки, бак'),h('th',null,'Блоки, маг'),
+        h('th',null,'Унікальні дисципліни'),h('th',null,'Викладачі'))),
+      h('tbody',null,all.map(function(y){
+        var one={};one[y]=1;var st=overviewStats(one);
+        return h('tr',{class:(set[y]?'sel':'')+(y===cur?' cur':''),tabindex:'0',title:'Показати лише '+yl(y),
+          onclick:function(){setYears([y]);},onkeydown:function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();setYears([y]);}}},
+          h('td',null,yl(y),y===cur?h('span',{class:'tag'},'поточний'):null),
+          h('td',null,String(st.blocks.bachelor)),h('td',null,String(st.blocks.master)),
+          h('td',null,String(st.subjTotal)),h('td',null,String(st.teachers.length)));
+      }))));
+
     var max=o.teachers.length?o.teachers[0].count:0;
     if(S.ovTeacher&&!o.teach[S.ovTeacher])S.ovTeacher=null;
-    var chips=h('div',{class:'tchips'},o.teachers.map(function(t){
+    var chips=o.teachers.length?h('div',{class:'tchips'},o.teachers.map(function(t){
       var b=Object.keys(t.subj).filter(function(k){return t.subj[k].levels.bachelor;}).length;
       var m=Object.keys(t.subj).filter(function(k){return t.subj[k].levels.master;}).length;
       return h('button',{type:'button',class:'tchip'+(t.count===max?' hi':''),'aria-pressed':String(S.ovTeacher===t.name),
         title:t.name+': '+t.count+' '+plural(t.count,'унікальна дисципліна','унікальні дисципліни','унікальних дисциплін')+' (бак '+b+', маг '+m+')',
         onclick:function(){S.ovTeacher=S.ovTeacher===t.name?null:t.name;renderOverview();}},
         h('span',{class:'tname'},t.name),h('b',null,String(t.count)));
-    }));
+    })):h('p',{class:'nopt'},'У вибраних роках викладачів ще не вказано');
     var detail=null;
     if(S.ovTeacher){
       var t=o.teach[S.ovTeacher];
@@ -383,10 +446,11 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           return h('li',null,h('span',null,x.name),x.levels.bachelor?h('span',{class:'lt'},'бак'):null,x.levels.master?h('span',{class:'lt m'},'маг'):null);
         })));
     }
+    var scope=sel.length===all.length?'усі роки':sel.map(yl).join(', ');
     overview.replaceChildren(
-      h('div',{class:'ov-head'},h('div',{class:'shead'},'Загальна статистика · '+yl(cur)+' і '+yl(cur+1)+' · бакалавр і магістр'),
-        h('div',{class:'tn'},'Лише блоки поточного й наступного навчальних років; дисципліна рахується один раз, навіть якщо повторюється')),
-      tiles,
+      h('div',{class:'ov-head'},h('div',{class:'shead'},'Статистика · '+scope+' · бакалавр і магістр'),
+        h('div',{class:'tn'},'Дисципліна рахується один раз у межах вибраних років, навіть якщо повторюється')),
+      picker,tiles,byYear,
       h('div',{class:'shead'},'Викладачі та кількість унікальних дисциплін (натисніть, щоб побачити перелік)'),
       chips,detail);
   }
