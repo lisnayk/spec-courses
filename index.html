@@ -102,7 +102,7 @@ h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px)
 .bt b{font-family:var(--f-mono);font-weight:500;font-size:11px;min-width:16px;text-align:center;padding:0 4px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
 .bt.hi{border-color:var(--accent);color:var(--ink)}
 .bt.hi b{background:var(--accent);color:var(--surface)}
-.subj{font-size:13px}
+.subj{font-size:13px;font-weight:600}
 .tch{font-size:12px;color:var(--muted)}
 .ml{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap}
 .ml:hover{text-decoration:underline}
@@ -178,6 +178,12 @@ button.tchip:hover{border-color:var(--muted)}
 button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
 .ov{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:14px}
 .ov-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.ov-toggle{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;width:100%;border:none;background:none;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.ov-toggle .shead{font-size:12px}
+.ov-sum{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ov-chev{margin-left:auto;font-size:12px;color:var(--accent);white-space:nowrap}
+.ov-toggle:hover .ov-chev{text-decoration:underline}
+.ov.closed{padding:10px 14px}
 .ov-head .shead{font-size:12px}
 .ovd{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
 .ovl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:4px 16px}
@@ -296,7 +302,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   var SVGNS='http://www.w3.org/2000/svg';
   var FONT={center:'500 18px Unbounded, system-ui, sans-serif',sub:'12px "IBM Plex Sans", system-ui, sans-serif',
     course:'600 15px "IBM Plex Sans", system-ui, sans-serif',sem:'500 13px "IBM Plex Sans", system-ui, sans-serif',
-    block:'500 13px "IBM Plex Sans", system-ui, sans-serif',leaf:'13px "IBM Plex Sans", system-ui, sans-serif',
+    block:'500 13px "IBM Plex Sans", system-ui, sans-serif',leaf:'600 13px "IBM Plex Sans", system-ui, sans-serif',
     meta:'12px "IBM Plex Sans", system-ui, sans-serif'};
   var measureCtx=document.createElement('canvas').getContext('2d');
   function tw(t,font){measureCtx.font=font;return measureCtx.measureText(t).width;}
@@ -407,6 +413,17 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     var all=dataYears(),sel=selectedYears(all),set={};
     sel.forEach(function(y){set[y]=1;});
     var o=overviewStats(set);
+    if(S.ovOpen===undefined){try{S.ovOpen=localStorage.getItem('ovOpen')==='1';}catch(e){S.ovOpen=false;}}
+    var scope=sel.length===all.length?'усі роки':sel.map(yl).join(', ');
+    var nPlans=o.plans.bachelor+o.plans.master,nBlocks=o.blocks.bachelor+o.blocks.master;
+    var toggle=h('button',{type:'button',class:'ov-toggle','aria-expanded':String(!!S.ovOpen),'aria-controls':'overview',
+        onclick:function(){S.ovOpen=!S.ovOpen;try{localStorage.setItem('ovOpen',S.ovOpen?'1':'0');}catch(e){}renderOverview();}},
+      h('span',{class:'shead'},'Статистика · '+scope),
+      h('span',{class:'ov-sum'},nPlans+' '+plural(nPlans,'план','плани','планів')+' · '+nBlocks+' '+plural(nBlocks,'блок','блоки','блоків')+' · '+
+        o.subjTotal+' '+plural(o.subjTotal,'дисципліна','дисципліни','дисциплін')+' · '+o.teachers.length+' '+plural(o.teachers.length,'викладач','викладачі','викладачів')),
+      h('span',{class:'ov-chev','aria-hidden':'true'},S.ovOpen?'Згорнути ▴':'Розгорнути ▾'));
+    overview.classList.toggle('closed',!S.ovOpen);
+    if(!S.ovOpen){overview.replaceChildren(toggle);return;}
     function setYears(list){
       S.ovYears=list.slice().sort(function(a,b){return a-b;});
       try{localStorage.setItem('ovYears',JSON.stringify(S.ovYears));}catch(e){}
@@ -467,10 +484,9 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           return h('li',null,h('span',null,x.name),x.levels.bachelor?h('span',{class:'lt'},'бак'):null,x.levels.master?h('span',{class:'lt m'},'маг'):null);
         })));
     }
-    var scope=sel.length===all.length?'усі роки':sel.map(yl).join(', ');
     overview.replaceChildren(
-      h('div',{class:'ov-head'},h('div',{class:'shead'},'Статистика · '+scope+' · бакалавр і магістр'),
-        h('div',{class:'tn'},'Дисципліна рахується один раз у межах вибраних років, навіть якщо повторюється')),
+      toggle,
+      h('div',{class:'tn'},'Бакалавр і магістр; дисципліна рахується один раз у межах вибраних років, навіть якщо повторюється'),
       picker,tiles,byYear,
       h('div',{class:'shead'},'Викладачі та кількість унікальних дисциплін (натисніть, щоб побачити перелік)'),
       chips,detail);
