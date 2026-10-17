@@ -104,6 +104,10 @@ h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px)
 .bt.hi b{background:var(--accent);color:var(--surface)}
 .subj{font-size:13px}
 .tch{font-size:12px;color:var(--muted)}
+.ml{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.ml:hover{text-decoration:underline}
+#map-box a text{cursor:pointer}
+#map-box a:hover tspan:first-child{text-decoration:underline}
 .nopt{margin:0;font-size:12px;color:var(--muted)}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -266,6 +270,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   var LEVELS={
     bachelor:{prefix:'p',name:'Бакалавр',degree:'бакалавр',courses:4,sems:8,program:'Програмна інженерія',code:'6.F2.'},
     master:{prefix:'m',name:'Магістр',degree:'магістр',courses:2,sems:3,program:'Інженерія програмного забезпечення',code:'7.F2.'}};
+  var MOODLE_COURSE='https://moodle.znu.edu.ua/course/view.php?id=';
+  function moodleUrl(id){var v=String(id==null?'':id).trim();return /^\d+$/.test(v)?MOODLE_COURSE+v:null;}
   function levelOf(id){return String(id||'')[0]==='m'?'master':'bachelor';}
   function LV(){return LEVELS[S.level]||LEVELS.bachelor;}
   function planCourses(p){return p.courses||LEVELS[levelOf(p.id)].courses;}
@@ -586,7 +592,11 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
             var ly=off+s.leafYs[i];
             branch(sEnd[0],sEnd[1],x3,ly,l.w+12,co.color,1.25);
             var t=label(x3,ly,FONT.leaf,l.subject,l.meta,l.empty?'mt':null);
-            if(l.moodle)t.append(svg('title',null,'Moodle ID: '+l.moodle));
+            if(moodleUrl(l.moodle)){
+              t.append(svg('title',null,'Відкрити курс у Moodle (ID '+l.moodle+')'));
+              var link=svg('a',{href:moodleUrl(l.moodle),target:'_blank',rel:'noopener'});
+              root.append(link);link.append(t);
+            }
           });
         });
       });
@@ -752,7 +762,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
               e.currentTarget.classList.remove('dragging');S.drag=null;
               document.querySelectorAll('.drop-ok').forEach(function(x){x.classList.remove('drop-ok');});
             }},
-          h('div',{class:'ot'},h('span',{class:'subj'},o.subject||''),o.teacher?h('span',{class:'tch'},o.teacher):null),
+          h('div',{class:'ot'},h('span',{class:'subj'},o.subject||''),
+            (o.teacher||moodleUrl(o.moodle))?h('span',{class:'tch'},o.teacher||'',
+              moodleUrl(o.moodle)?[o.teacher?' · ':'',h('a',{class:'ml',href:moodleUrl(o.moodle),target:'_blank',rel:'noopener',draggable:'false',
+                title:'Курс у Moodle (ID '+o.moodle+')'},'Moodle ↗')]:null):null),
           canMove?h('button',{type:'button',class:'ico mv',title:'Перенести в інший блок','aria-label':'Перенести «'+o.subject+'» в інший блок',
             onclick:function(){S.moving={from:s.id,subject:o.subject};render();}},'⇄'):null);
       }))
@@ -849,7 +862,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   var expBtn=document.getElementById('exp'),expMsg=document.getElementById('exp-msg');
   function exportXlsx(){
     if(!window.XLSX){expMsg.textContent='Не завантажилася бібліотека Excel. Оновіть сторінку.';return;}
-    var rows=[['Рівень','План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle']];
+    var rows=[['Рівень','План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle','Курс у Moodle']];
     var list=Object.keys(S.slots).map(function(id){return Object.assign({id:id},S.slots[id]);})
       .sort(function(a,b){return a.id[0].localeCompare(b.id[0])||(a.plan-b.plan)||(a.sem-b.sem)||((a.order||0)-(b.order||0));});
     list.forEach(function(s){
@@ -857,11 +870,11 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       var course=Math.ceil(s.sem/2),y=s.plan+course-1;
       var base=[LEVELS[lv].degree,s.plan,p.code||'',yl(y),course,s.sem,s.label||'',s.credits==null?'':s.credits,ST[s.status]||ST.planned];
       var opts=Array.isArray(s.options)&&s.options.length?s.options:[{subject:'',teacher:'',moodle:''}];
-      opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle==null?'':String(o.moodle)]));});
+      opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle==null?'':String(o.moodle),moodleUrl(o.moodle)||'']));});
     });
     var ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:10},{wch:10},{wch:10},{wch:10},{wch:6},{wch:8},{wch:10},{wch:8},{wch:18},{wch:60},{wch:34},{wch:12}];
-    ws['!autofilter']={ref:'A1:L'+rows.length};
+    ws['!cols']=[{wch:10},{wch:10},{wch:10},{wch:10},{wch:6},{wch:8},{wch:10},{wch:8},{wch:18},{wch:60},{wch:34},{wch:12},{wch:52}];
+    ws['!autofilter']={ref:'A1:M'+rows.length};
     var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Спецкурси');
     var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
     var d=new Date(),stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
