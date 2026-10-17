@@ -210,6 +210,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   <div class="board-scroll" id="board-scroll"><div id="board" class="board"><p class="empty">Завантажую навчальні плани…</p></div></div>
   <section id="map" class="map" hidden>
     <div id="map-pick" class="map-pick" role="group" aria-label="Навчальний план"></div>
+    <div id="map-years" class="yr-pick" role="group" aria-label="Навчальні роки плану"></div>
     <div id="map-stats" class="stats" aria-live="polite"></div>
     <div class="map-scroll"><div id="map-box"></div></div>
   </section>
@@ -234,7 +235,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     (function add(list){list.forEach(function(c){if(c==null||c===false)return;if(Array.isArray(c))return add(c);el.append(c.nodeType?c:document.createTextNode(String(c)));});})(kids);
     return el;
   }
-  var overview=document.getElementById('overview'),boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
+  var overview=document.getElementById('overview'),boardScroll=document.getElementById('board-scroll'),mapWrap=document.getElementById('map'),mapPick=document.getElementById('map-pick'),mapYearsEl=document.getElementById('map-years'),mapBox=document.getElementById('map-box'),mapStats=document.getElementById('map-stats');
   var board=document.getElementById('board'),msg=document.getElementById('msg'),addSec=document.getElementById('addplan'),hint=document.getElementById('hint');
   function say(t){msg.textContent=t||'';msg.hidden=!t;}
   var api={op:function(body){
@@ -457,7 +458,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 
   function renderMap(){
     var plans=mapPlans();
-    mapPick.replaceChildren();mapBox.replaceChildren();mapStats.replaceChildren();
+    mapPick.replaceChildren();mapYearsEl.replaceChildren();mapBox.replaceChildren();mapStats.replaceChildren();
     if(!plans.length){mapBox.append(h('p',{class:'empty'},'Навчальних планів поки немає.'));return;}
     if(!S.mapPlan||!S.plans[S.mapPlan]||levelOf(S.mapPlan)!==S.level){
       var active=plans.filter(function(p){return planLast(p)>=cur;}).sort(function(a,b){return a.year-b.year;});
@@ -469,14 +470,40 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         'План '+p.year+(planLast(p)<cur?' · випущено':'')));
     });
     var plan=Object.assign({id:S.mapPlan},S.plans[S.mapPlan]);
+
+    // Academic years of the plan to show; remembered per browser, default is the whole plan.
+    var pYears=[];for(var yi=0;yi<planCourses(plan);yi++)pYears.push(plan.year+yi);
+    if(S.mapYears===undefined){try{S.mapYears=JSON.parse(localStorage.getItem('mapYears'));}catch(e){S.mapYears=null;}}
+    var mSel=(Array.isArray(S.mapYears)?S.mapYears:[]).filter(function(y){return pYears.indexOf(y)>=0;});
+    if(!mSel.length)mSel=pYears.slice();
+    function setMapYears(list){
+      S.mapYears=list;S.mapCentered=null;
+      try{localStorage.setItem('mapYears',JSON.stringify(list));}catch(e){}
+      render();
+    }
+    mapYearsEl.append(h('span',{class:'tn'},'Роки плану:'));
+    pYears.forEach(function(y,i){
+      mapYearsEl.append(h('button',{type:'button',class:'chip'+(y===cur?' cur':''),'aria-pressed':String(mSel.indexOf(y)>=0),
+        title:y===cur?'Поточний навчальний рік':null,
+        onclick:function(){
+          var n=mSel.slice(),k=n.indexOf(y);
+          if(k>=0){if(n.length>1)n.splice(k,1);}else n.push(y);
+          setMapYears(n.sort(function(a,b){return a-b;}));
+        }},yl(y)+' · '+(i+1)+' курс'));
+    });
+    mapYearsEl.append(h('span',{class:'yr-sep','aria-hidden':'true'}),
+      h('button',{type:'button',class:'lnk',onclick:function(){setMapYears(null);}},'весь план'),
+      pYears.indexOf(cur)>=0?h('button',{type:'button',class:'lnk',onclick:function(){setMapYears([cur,cur+1]);}},'поточний і наступний'):null);
+
     var all=[],courses=[];
     for(var c=1;c<=planCourses(plan);c++){
+      if(mSel.indexOf(plan.year+c-1)<0)continue;
       var sems=[];
       [2*c-1,2*c].filter(function(sem){return sem<=planSems(plan);}).forEach(function(sem){var list=slotsOf(plan.id,sem);if(list.length){sems.push({sem:sem,slots:list});all=all.concat(list);}});
       if(sems.length)courses.push({course:c,year:plan.year+c-1,sems:sems,color:COURSE_COLORS[c-1]});
     }
     renderStats(plan,all);
-    if(!courses.length){mapBox.append(h('p',{class:'empty'},'У плані '+plan.year+' ще немає блоків спецкурсів.'));return;}
+    if(!courses.length){mapBox.append(h('p',{class:'empty'},mSel.length<pYears.length?'У вибраних роках плану '+plan.year+' немає блоків спецкурсів.':'У плані '+plan.year+' ще немає блоків спецкурсів.'));return;}
 
     // Layout: plan → course → semester → block → disciplines, all to the right, in study order top to bottom.
     var ROW=26,SEM_GAP=12,COURSE_GAP=22,G=44,UL=6,PAD=24;
