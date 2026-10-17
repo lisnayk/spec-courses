@@ -87,7 +87,16 @@ h1{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,2.4vw,28px)
 .sl-c{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sl-h .pill{margin-left:auto}
 .opts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
-.opts li{display:flex;flex-direction:column;padding-left:10px;border-left:2px solid var(--line);border-radius:0}
+.opts li{display:flex;gap:6px;align-items:flex-start;padding-left:10px;border-left:2px solid var(--line);border-radius:0}
+.ot{display:flex;flex-direction:column;flex:1;min-width:0}
+.opts li[draggable="true"]{cursor:grab}
+.opts li.dragging{opacity:.4}
+.opts li .mv{opacity:0;width:22px;height:22px;font-size:13px}
+.opts li:hover .mv,.opts li .mv:focus-visible{opacity:1}
+@media (hover:none){.opts li .mv{opacity:1}}
+.slot.drop-ok{outline:2px dashed var(--accent);outline-offset:2px;background:var(--accent-soft)}
+.mvbox{flex:1;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--accent);border-radius:6px;background:var(--bg)}
+.mvrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .subj{font-size:13px}
 .tch{font-size:12px;color:var(--muted)}
 .nopt{margin:0;font-size:12px;color:var(--muted)}
@@ -246,7 +255,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   function applyData(j){S.plans=j.plans||{};S.slots=j.slots||{};S.loadedP=S.loadedS=true;S.loadFail=false;}
   function load(){
     return fetch('/api/data',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();})
-      .then(function(j){applyData(j);if(!S.editing&&!S.addOpen)render();},function(){if(!S.loadedS){S.loadFail=true;render();}});
+      .then(function(j){applyData(j);if(!S.editing&&!S.addOpen&&!S.drag&&!S.moving)render();},function(){if(!S.loadedS){S.loadFail=true;render();}});
   }
   // Qualification levels. Plan ids: p<year> (bachelor), m<year> (master); a slot id starts with its plan id.
   var LEVELS={
@@ -603,7 +612,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   function render(){
     board.replaceChildren();
     var lead=S.transposed?'Рядки — навчальні роки, стовпці — навчальні плани за роком вступу.':'Рядки — навчальні плани за роком вступу, стовпці — навчальні роки.';
-    hint.textContent=lead+(S.canWrite?' Натисніть ✎ на блоці, щоб змінити дисципліни та викладачів.':'');
+    hint.textContent=lead+(S.canWrite?' Натисніть ✎ на блоці, щоб змінити дисципліни та викладачів; перетягніть дисципліну (або ⇄), щоб перенести її в інший блок.':'');
     if(S.loadFail){board.append(h('p',{class:'empty'},'Не вдалося завантажити дані. Оновіть сторінку.'));return;}
     if(!(S.loadedP&&S.loadedS)){board.append(h('p',{class:'empty'},'Завантажую навчальні плани…'));return;}
     var isMap=S.mode==='map';
@@ -657,16 +666,75 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     return cell;
   }
 
+  // ---- Moving a discipline between blocks (drag and drop, or the ⇄ button with a block list) ----
+  function moveTargets(fromId){
+    var out=[];
+    levelPlans().filter(function(p){return planLast(p)>=cur;}).sort(function(a,b){return a.year-b.year;}).forEach(function(p){
+      for(var sem=1;sem<=planSems(p);sem++){
+        slotsOf(p.id,sem).forEach(function(t){
+          if(t.id!==fromId)out.push({id:t.id,text:'План '+p.year+' · '+sem+' сем. ('+yl(p.year+Math.ceil(sem/2)-1)+') · '+(t.label||'Блок')});
+        });
+      }
+    });
+    return out;
+  }
+  function moveBox(s,o){
+    var sel=h('select',{id:'mv-to','aria-label':'Блок, куди перенести дисципліну'},
+      h('option',{value:''},'Оберіть блок…'),
+      moveTargets(s.id).map(function(t){return h('option',{value:t.id},t.text);}));
+    var err=h('span',{class:'ferr','aria-live':'polite'});
+    sel.addEventListener('change',function(){err.textContent='';});
+    return h('div',{class:'mvbox'},
+      h('div',{class:'tn'},'Перенести «'+o.subject+'» у:'),sel,
+      h('div',{class:'mvrow'},
+        h('button',{type:'button',class:'btn pri',disabled:S.busy,onclick:function(){
+          if(!sel.value){err.textContent='Оберіть блок.';return;}
+          moveOption(s.id,sel.value,o.subject);
+        }},S.busy?'Переношу…':'Перенести'),
+        h('button',{type:'button',class:'btn',disabled:S.busy,onclick:function(){S.moving=null;render();}},'Скасувати'),
+        err));
+  }
+  function moveOption(from,to,subject){
+    S.busy=true;say('');render();
+    api.op({type:'moveOption',from:from,to:to,subject:subject}).then(
+      function(j){applyData(j);S.busy=false;S.moving=null;render();},
+      function(e){S.busy=false;S.moving=null;fail(e);render();});
+  }
+
   function slotCard(s){
     var st=ST[s.status]?s.status:'planned';
     var opts=Array.isArray(s.options)?s.options:[];
-    return h('article',{class:'slot st-'+st},
+    var dropOk=function(){return S.drag&&S.drag.from!==s.id&&S.drag.from[0]===s.id[0];};
+    return h('article',{class:'slot st-'+st,
+        ondragover:function(e){if(dropOk()){e.preventDefault();e.dataTransfer.dropEffect='move';e.currentTarget.classList.add('drop-ok');}},
+        ondragleave:function(e){if(!e.currentTarget.contains(e.relatedTarget))e.currentTarget.classList.remove('drop-ok');},
+        ondrop:function(e){
+          e.preventDefault();e.currentTarget.classList.remove('drop-ok');
+          var d=S.drag;S.drag=null;
+          if(d&&d.from!==s.id&&d.from[0]===s.id[0])moveOption(d.from,s.id,d.subject);
+        }},
       h('header',{class:'sl-h'},
         h('span',{class:'sl-l'},s.label||'Слот'),
         s.credits?h('span',{class:'sl-c'},s.credits+' кр.'):null,
         h('span',{class:'pill'},ST[st]),
         S.canWrite&&!S.editing?h('button',{class:'ico',type:'button',title:'Редагувати','aria-label':'Редагувати '+(s.label||'слот'),onclick:function(){startEdit(s);}},'✎'):null),
-      opts.length?h('ul',{class:'opts'},opts.map(function(o){return h('li',{title:o.moodle?'Moodle ID: '+o.moodle:null},h('span',{class:'subj'},o.subject||''),o.teacher?h('span',{class:'tch'},o.teacher):null);}))
+      opts.length?h('ul',{class:'opts'},opts.map(function(o){
+        if(S.moving&&S.moving.from===s.id&&S.moving.subject===o.subject)return h('li',null,moveBox(s,o));
+        var canMove=S.canWrite&&!S.editing&&!S.moving&&!S.busy&&!!o.subject;
+        return h('li',{title:o.moodle?'Moodle ID: '+o.moodle:null,draggable:canMove?'true':null,
+            ondragstart:canMove?function(e){
+              S.drag={from:s.id,subject:o.subject};
+              e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',o.subject);
+              e.currentTarget.classList.add('dragging');
+            }:null,
+            ondragend:function(e){
+              e.currentTarget.classList.remove('dragging');S.drag=null;
+              document.querySelectorAll('.drop-ok').forEach(function(x){x.classList.remove('drop-ok');});
+            }},
+          h('div',{class:'ot'},h('span',{class:'subj'},o.subject||''),o.teacher?h('span',{class:'tch'},o.teacher):null),
+          canMove?h('button',{type:'button',class:'ico mv',title:'Перенести в інший блок','aria-label':'Перенести «'+o.subject+'» в інший блок',
+            onclick:function(){S.moving={from:s.id,subject:o.subject};render();}},'⇄'):null);
+      }))
         :h('p',{class:'nopt'},st==='missing'?'Блоку немає у службовій записці':'Дисципліни ще не визначено'));
   }
 
@@ -834,7 +902,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   expBtn.hidden=false;
   render();
   load();
-  setInterval(function(){if(!document.hidden&&!S.editing&&!S.addOpen&&!S.busy)load();},30000);
+  setInterval(function(){if(!document.hidden&&!S.editing&&!S.addOpen&&!S.busy&&!S.drag&&!S.moving)load();},30000);
 })();
 </script>
 </body>
