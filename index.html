@@ -187,6 +187,16 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 .map-copy{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .map-copy select{width:auto;max-width:100%;min-width:220px}
 .map-copy .ok{color:var(--ok)}
+#map-box .cpy{cursor:pointer}
+#map-box .cpy-hit{fill:transparent}
+#map-box .cpy:hover .cpy-hit,#map-box .cpy:focus .cpy-hit{fill:var(--accent-soft)}
+#map-box .cpy:focus{outline:none}
+#map-box .cpy:focus-visible .cpy-hit{stroke:var(--accent);stroke-width:1.5}
+#map-box .cpy-a,#map-box .cpy-b{fill:var(--surface);stroke:var(--muted);stroke-width:1.3}
+#map-box .cpy:hover .cpy-a,#map-box .cpy:hover .cpy-b{stroke:var(--accent)}
+#map-box .cpy-ok{stroke:var(--ok);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+#map-box .cpy.done .cpy-a,#map-box .cpy.done .cpy-b{opacity:0}
+#map-box .cpy.done .cpy-ok{opacity:1}
 #map-box .dim{opacity:.22}
 #map-box .hl tspan:first-child{fill:var(--accent)}
 .tcl{grid-template-columns:1fr}
@@ -519,16 +529,14 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       chips,detail);
   }
 
-  // ---- Copy for Excel: same columns as the Excel export ----
-  var COPY_HEAD=['Рівень','План (рік вступу)','Шифр','Навчальний рік','Курс','Семестр','Блок','Кредити','Статус','Дисципліна','Викладач','ID у Moodle','Курс у Moodle'];
-  function copyRows(plan,slots){
-    var rows=[COPY_HEAD];
+  // ---- Copy for Excel: rows in the memo's column order, without a header ----
+  // Moodle id | full discipline name | teacher — ready to paste into the memo table.
+  function copyRows(slots){
+    var rows=[];
     slots.slice().sort(function(a,b){return a.sem-b.sem||((a.order||0)-(b.order||0));}).forEach(function(s){
-      var course=Math.ceil(s.sem/2);
-      var base=[LEVELS[levelOf(plan.id)].degree,plan.year,plan.code||'',yl(plan.year+course-1),course,s.sem,s.label||'',
-        s.credits==null?'':s.credits,ST[s.status]||ST.planned];
-      var opts=Array.isArray(s.options)&&s.options.length?s.options:[{}];
-      opts.forEach(function(o){rows.push(base.concat([o.subject||'',o.teacher||'',o.moodle||'',moodleUrl(o.moodle)||'']));});
+      (Array.isArray(s.options)?s.options:[]).forEach(function(o){
+        if(o.subject)rows.push([o.moodle||'',o.subject,o.teacher||'']);
+      });
     });
     return rows;
   }
@@ -541,14 +549,9 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   function copyTable(rows){
     var tsv=rows.map(function(r){return r.map(function(v){return String(v).replace(/[\t\r\n]+/g,' ');}).join('\t');}).join('\r\n');
     function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-    var link=COPY_HEAD.length-1;
-    // mso-number-format "@" keeps codes like 6.1213 and years like 2026/27 as text in Excel.
-    var html='<table>'+rows.map(function(r,i){
-      return '<tr>'+r.map(function(v,j){
-        if(!i)return '<th>'+esc(v)+'</th>';
-        var cell=(j===link&&v)?'<a href="'+esc(v)+'">'+esc(v)+'</a>':esc(v);
-        return '<td style="mso-number-format:\'\\@\'">'+cell+'</td>';
-      }).join('')+'</tr>';
+    // mso-number-format "@" keeps every cell as text in Excel (ids are not reformatted).
+    var html='<table>'+rows.map(function(r){
+      return '<tr>'+r.map(function(v){return '<td style="mso-number-format:\'\\@\'">'+esc(v)+'</td>';}).join('')+'</tr>';
     }).join('')+'</table>';
     if(navigator.clipboard&&window.ClipboardItem){
       return navigator.clipboard.write([new ClipboardItem({
@@ -559,6 +562,18 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     if(navigator.clipboard)return navigator.clipboard.writeText(tsv).catch(function(){return copyFallback(tsv);});
     return copyFallback(tsv);
   }
+  function copyAndReport(slots,done){
+    var rows=copyRows(slots),n=rows.length;
+    if(!n){mapCopyNote('У вибраному немає дисциплін для копіювання.',false);return;}
+    copyTable(rows).then(function(){
+      mapCopyNote('Скопійовано '+n+' '+plural(n,'рядок','рядки','рядків')+' (ID у Мудл, назва, викладач) — вставте в Excel (Ctrl+V)',true);
+      if(done)done();
+    },function(){mapCopyNote('Не вдалося скопіювати. Спробуйте ще раз.',false);});
+  }
+  function mapCopyNote(text,ok){
+    var n=document.getElementById('copy-note');
+    if(n){n.className='tn'+(ok?' ok':'');n.textContent=text;}
+  }
   function renderCopy(plan,slots){
     if(!slots.length)return;
     var sorted=slots.slice().sort(function(a,b){return a.sem-b.sem||((a.order||0)-(b.order||0));});
@@ -568,12 +583,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       sorted.map(function(x){
         return h('option',{value:x.id,selected:S.copyWhat===x.id},x.sem+' сем. · '+(x.label||'Блок')+(x.credits?' · '+x.credits+' кр.':''));
       }));
-    var note=h('span',{class:'tn','aria-live':'polite'});
+    var note=h('span',{class:'tn',id:'copy-note','aria-live':'polite'},'або натисніть ⧉ біля блоку на карті');
     var btn=h('button',{type:'button',class:'btn',onclick:function(){
-      var pick=sel.value,rows=copyRows(plan,pick?sorted.filter(function(x){return x.id===pick;}):sorted),n=rows.length-1;
-      copyTable(rows).then(function(){
-        note.className='tn ok';note.textContent='Скопійовано '+n+' '+plural(n,'рядок','рядки','рядків')+' із заголовком — вставте в Excel (Ctrl+V)';
-      },function(){note.className='tn';note.textContent='Не вдалося скопіювати. Спробуйте ще раз.';});
+      var pick=sel.value;
+      copyAndReport(pick?sorted.filter(function(x){return x.id===pick;}):sorted);
     }},'Копіювати для Excel');
     mapCopy.append(h('span',{class:'tn'},'Копіювати:'),sel,btn,note);
   }
@@ -641,7 +654,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         w1=Math.max(w1,tw(g.text,FONT.sem)+tw(g.meta,FONT.meta));
         var gys=[];
         g.slots.forEach(function(s){
-          s.text=(s.label||'Блок')+(s.credits?' · '+s.credits+' кр.':'');w2=Math.max(w2,tw(s.text,FONT.block)+16);
+          s.text=(s.label||'Блок')+(s.credits?' · '+s.credits+' кр.':'');s.tw=tw(s.text,FONT.block);w2=Math.max(w2,s.tw+16+24);
           var opts=Array.isArray(s.options)?s.options:[];
           s.leaves=opts.length?opts.map(function(o){
             var meta=o.teacher?' · '+o.teacher:'';
@@ -692,6 +705,23 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           var st=STATUS_ORDER.indexOf(s.status)>=0?s.status:'planned';
           root.append(svg('circle',{cx:x2+10,cy:sy-4,r:4,class:'dot-'+st},svg('title',null,ST[st])));
           root.append(svg('text',{x:x2+20,y:sy,style:'font:'+FONT.block},s.text));
+          if((s.options||[]).some(function(o){return o.subject;})){
+            // Copy icon: two overlapping sheets; turns into a check mark for a moment after copying.
+            var ix=x2+20+s.tw+8,iy=sy-12,slot=s;
+            var icon=svg('g',{class:'cpy',transform:'translate('+ix+','+iy+')',role:'button',tabindex:'0',
+                'aria-label':'Копіювати дисципліни блоку '+(s.label||'')+' для Excel'},
+              svg('title',null,'Копіювати дисципліни блоку для Excel'),
+              svg('rect',{x:-3,y:-2,width:20,height:20,rx:4,class:'cpy-hit'}),
+              svg('rect',{x:5,y:1,width:9,height:11,rx:2,class:'cpy-a'}),
+              svg('rect',{x:2,y:4,width:9,height:11,rx:2,class:'cpy-b'}),
+              svg('path',{d:'M3 9 L6.5 12.5 L13 5',class:'cpy-ok',fill:'none'}));
+            var act=function(g){return function(){
+              copyAndReport([slot],function(){g.classList.add('done');setTimeout(function(){g.classList.remove('done');},1400);});
+            };}(icon);
+            icon.addEventListener('click',act);
+            icon.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+            root.append(icon);
+          }
           s.leaves.forEach(function(l,i){
             var ly=off+s.leafYs[i];
             var mark=S.mapTeacher?(l.mine?'hl':'dim'):null;
