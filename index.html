@@ -184,6 +184,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 .ov-chev{margin-left:auto;font-size:12px;color:var(--accent);white-space:nowrap}
 .ov-toggle:hover .ov-chev{text-decoration:underline}
 .ov.closed{padding:10px 14px}
+#map-box .dim{opacity:.22}
+#map-box .hl tspan:first-child{fill:var(--accent)}
+.tcl{grid-template-columns:1fr}
+.tcl li{flex-wrap:wrap;gap:4px 8px}
 .ov-head .shead{font-size:12px}
 .ovd{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
 .ovl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:4px 16px}
@@ -320,7 +324,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 
   // Statistics for one plan: totals, status split, teacher load, Moodle coverage.
   function planStats(slots){
-    var st={blocks:slots.length,credits:credits(slots),filled:0,options:0,unique:{},teachers:{},moodle:0,status:{}};
+    var st={blocks:slots.length,credits:credits(slots),filled:0,options:0,unique:{},teachers:{},courses:{},moodle:0,status:{}};
     slots.forEach(function(s){
       var key=STATUS_ORDER.indexOf(s.status)>=0?s.status:'planned';
       st.status[key]=(st.status[key]||0)+1;
@@ -330,7 +334,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         st.options++;
         if(o.subject)st.unique[o.subject.trim().toLowerCase()]=1;
         if(o.moodle)st.moodle++;
-        String(o.teacher||'').split(',').map(function(t){return t.trim();}).filter(Boolean).forEach(function(t){st.teachers[t]=(st.teachers[t]||0)+1;});
+        String(o.teacher||'').split(',').map(function(t){return t.trim();}).filter(Boolean).forEach(function(t){
+          st.teachers[t]=(st.teachers[t]||0)+1;
+          (st.courses[t]||(st.courses[t]=[])).push({subject:o.subject||'',label:s.label||'Блок',sem:s.sem,moodle:o.moodle});
+        });
       });
     });
     st.uniqueCount=Object.keys(st.unique).length;
@@ -356,14 +363,30 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     });
     // Teacher load as chips; the most loaded teachers get a filled counter.
     var maxLoad=st.teacherList.length?st.teacherList[0][1]:0;
+    if(S.mapTeacher&&!st.teachers[S.mapTeacher])S.mapTeacher=null;
     var teachers=h('div',{class:'tchips'},st.teacherList.map(function(t){
-      return h('span',{class:'tchip'+(t[1]===maxLoad?' hi':''),title:t[0]+': '+t[1]+' '+plural(t[1],'дисципліна','дисципліни','дисциплін')},
+      return h('button',{type:'button',class:'tchip'+(t[1]===maxLoad?' hi':''),'aria-pressed':String(S.mapTeacher===t[0]),
+        title:t[0]+': '+t[1]+' '+plural(t[1],'дисципліна','дисципліни','дисциплін')+' — натисніть, щоб побачити й підсвітити на карті',
+        onclick:function(){S.mapTeacher=S.mapTeacher===t[0]?null:t[0];render();}},
         h('span',{class:'tname'},t[0]),h('b',null,String(t[1])));
     }));
+    var tDetail=null;
+    if(S.mapTeacher){
+      var list=st.courses[S.mapTeacher].slice().sort(function(a,b){return a.sem-b.sem||a.label.localeCompare(b.label,'uk')||a.subject.localeCompare(b.subject,'uk');});
+      tDetail=h('div',{class:'ovd'},
+        h('div',{class:'shead'},S.mapTeacher+' — '+list.length+' '+plural(list.length,'дисципліна','дисципліни','дисциплін')+' у плані'),
+        h('ul',{class:'ovl tcl'},list.map(function(c){
+          var url=moodleUrl(c.moodle);
+          return h('li',null,h('span',{class:'subj'},c.subject),
+            h('span',{class:'tch'},c.sem+' сем. · '+c.label),
+            url?h('a',{class:'ml',href:url,target:'_blank',rel:'noopener'},'Moodle ↗'):null);
+        })),
+        h('button',{type:'button',class:'lnk',onclick:function(){S.mapTeacher=null;render();}},'Зняти виділення'));
+    }
     mapStats.replaceChildren(
       h('div',{class:'stats-main'},tiles,h('div',{class:'sstatus'},h('div',{class:'shead'},'Статуси блоків'),bar,legend)),
       h('div',{class:'stats-side'},h('div',{class:'shead'},'Навантаження викладачів (кількість дисциплін)'),
-        st.teacherList.length?teachers:h('p',{class:'nopt'},'Викладачів ще не вказано')));
+        st.teacherList.length?teachers:h('p',{class:'nopt'},'Викладачів ще не вказано'),tDetail));
   }
 
   // ---- Overview on the main page: both levels, for the academic years the viewer selects ----
@@ -558,7 +581,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           var opts=Array.isArray(s.options)?s.options:[];
           s.leaves=opts.length?opts.map(function(o){
             var meta=o.teacher?' · '+o.teacher:'';
-            return {subject:o.subject||'',meta:meta,moodle:o.moodle,w:tw(o.subject||'',FONT.leaf)+tw(meta,FONT.meta)};
+            var who=String(o.teacher||'').split(',').map(function(t){return t.trim();});
+            return {subject:o.subject||'',meta:meta,moodle:o.moodle,mine:!!S.mapTeacher&&who.indexOf(S.mapTeacher)>=0,w:tw(o.subject||'',FONT.leaf)+tw(meta,FONT.meta)};
           }):[{subject:s.status==='missing'?'Блоку немає у службовій записці':'Дисципліни ще не визначено',meta:'',empty:true,w:tw('Блоку немає у службовій записці',FONT.leaf)}];
           var ys=s.leaves.map(function(l){w3=Math.max(w3,l.w);var r=y;y+=ROW;return r;});
           s.leafYs=ys;s.y=(ys[0]+ys[ys.length-1])/2;gys.push(s.y);
@@ -579,10 +603,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     var W=x3+w3+PAD;
     var root=svg('svg',{width:Math.ceil(W),height:Math.ceil(H),viewBox:'0 0 '+Math.ceil(W)+' '+Math.ceil(H),role:'img','aria-label':'Карта спецкурсів плану '+plan.year});
 
-    function branch(px,py,x,y,len,color,width){
+    function branch(px,py,x,y,len,color,width,cls){
       var mx=(px+x)/2;
       root.append(svg('path',{d:'M'+px+' '+py+' C'+mx+' '+py+','+mx+' '+(y+UL)+','+x+' '+(y+UL)+' L'+(x+len)+' '+(y+UL),
-        fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':'round'}));
+        fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':'round',class:cls||null}));
       return [x+len,y+UL];
     }
     function label(x,y,font,text,meta,cls){
@@ -606,8 +630,9 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           root.append(svg('text',{x:x2+20,y:sy,style:'font:'+FONT.block},s.text));
           s.leaves.forEach(function(l,i){
             var ly=off+s.leafYs[i];
-            branch(sEnd[0],sEnd[1],x3,ly,l.w+12,co.color,1.25);
-            var t=label(x3,ly,FONT.leaf,l.subject,l.meta,l.empty?'mt':null);
+            var mark=S.mapTeacher?(l.mine?'hl':'dim'):null;
+            branch(sEnd[0],sEnd[1],x3,ly,l.w+12,co.color,l.mine?2.5:1.25,mark==='dim'?'dim':null);
+            var t=label(x3,ly,FONT.leaf,l.subject,l.meta,[l.empty?'mt':'',mark||''].join(' ').trim()||null);
             if(moodleUrl(l.moodle)){
               t.append(svg('title',null,'Відкрити курс у Moodle (ID '+l.moodle+')'));
               var link=svg('a',{href:moodleUrl(l.moodle),target:'_blank',rel:'noopener'});
