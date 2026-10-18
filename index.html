@@ -267,6 +267,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
 .cur-scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
 .cur-grid{position:relative;display:grid;column-gap:44px;min-width:min-content}
 .cur-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cur-lv{grid-column:1/-1;border-top:2px dashed var(--line);padding:4px 0 2px;margin-top:6px;font-size:11px;font-style:italic;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:center}
+.cur-grid>.cur-ch{margin-bottom:0}
 .cur-ch{display:flex;flex-direction:column;gap:1px;padding:0 2px 8px;border-bottom:2px solid var(--line);margin-bottom:4px}
 .cur-ch b{font-size:13px;font-weight:600}
 .cur-ch span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -840,8 +842,10 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
   // ---- Curriculum: all components of a plan by semester, with prerequisite links ----
   var CYCLES={zp:{short:'ЗП',name:'Загальна підготовка'},pps:{short:'ППС',name:'Професійна підготовка спеціальності'},
     ppop:{short:'ППОП',name:'Професійна підготовка ОП'},vss:{short:'ВСС',name:'Вибіркові спеціальності'},vsu:{short:'ВСУ',name:'Вибіркові університету'}};
-  // Order of cycles inside a semester column: linked components first, unlinked electives and general ones below.
-  var CYCLE_ORDER=['pps','ppop','vss','zp','vsu'];
+  // Three horizontal levels as on the scheme in the OPP: general training (with university electives),
+  // professional training of the specialty, professional training of the programme (with specialty electives).
+  var CUR_LEVELS=['1.1. Цикл загальної підготовки','1.2. Цикл професійної підготовки спеціальності','1.3. Цикл професійної підготовки освітньої програми'];
+  var CYCLE_LEVEL={zp:0,vsu:0,pps:1,ppop:2,vss:2},CYCLE_SUB={zp:0,vsu:1,pps:0,ppop:0,vss:1};
   var CONTROL={exam:'екзамен',credit:'залік'},WORK={paper:'курсова робота',project:'курсовий проєкт'};
   var curWrap=document.getElementById('cur'),curPick=document.getElementById('cur-pick'),curFilter=document.getElementById('cur-filter'),
     curTools=document.getElementById('cur-tools'),curInfo=document.getElementById('cur-info'),curScroll=document.getElementById('cur-scroll'),
@@ -862,6 +866,65 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     return seen;
   }
   function partText(p){return [p.credits!=null?p.credits+' кр.':null,CONTROL[p.control]||null,WORK[p.work]||null].filter(Boolean).join(', ');}
+
+  // Layout model of a curriculum: semester columns of cards (and waypoints of long links), ordered to reduce crossings.
+  function curModel(plan,comps,links,byCode,shown){
+    // Nodes: one card per semester part of a component (a two-semester course gets two cards).
+    var sems=planSems(plan),cols=[];
+    for(var s=1;s<=sems;s++)cols.push([]);
+    var nodes={};
+    comps.forEach(function(c){
+      if(!shown(c))return;
+      c.parts.forEach(function(p,i){
+        if(p.sem<1||p.sem>sems)return;
+        var n={key:c.code+'@'+p.sem,comp:c,part:p,idx:i,sem:p.sem,band:CYCLE_LEVEL[c.cycle],sub:CYCLE_SUB[c.cycle]};
+        nodes[n.key]=n;cols[p.sem-1].push(n);
+      });
+    });
+    // A link goes from the latest part of A before the first part of B that comes after A.
+    function endpoints(l){
+      var a=byCode[l.from],b=byCode[l.to];if(!a||!b||!shown(a)||!shown(b))return null;
+      var bp=b.parts.filter(function(p){return p.sem>a.parts[0].sem;})[0]||b.parts[b.parts.length-1];
+      var ap=a.parts.filter(function(p){return p.sem<bp.sem;}).pop()||a.parts[0];
+      var x=nodes[l.from+'@'+ap.sem],y=nodes[l.to+'@'+bp.sem];
+      return x&&y?[x,y]:null;
+    }
+    var edges=[];
+    links.forEach(function(l){var e=endpoints(l);if(e)edges.push({link:l,a:e[0],b:e[1],key:linkKey(l)});});
+    var conts=[];
+    Object.keys(nodes).forEach(function(k){var n=nodes[k];if(n.idx>0){var prev=nodes[n.comp.code+'@'+n.comp.parts[n.idx-1].sem];if(prev)conts.push({a:prev,b:n});}});
+    // A link that skips semesters runs through a gap between cards in every semester it passes ("waypoint");
+    // links from one card share their waypoints, so they travel as a bundle until they part.
+    var nb={};
+    function addNb(x,y){(nb[x.key]||(nb[x.key]=[])).push(y);(nb[y.key]||(nb[y.key]=[])).push(x);}
+    edges.forEach(function(e){
+      e.via=[];var prev=e.a;
+      for(var s=e.a.sem+1;s<e.b.sem;s++){
+        var k='~'+e.a.key+'>'+s,w=nodes[k];
+        if(!w){w=nodes[k]={key:k,way:true,sem:s,band:Math.min(e.a.band,e.b.band),sub:0,code:e.a.comp.code};cols[s-1].push(w);}
+        if(!(nb[prev.key]||[]).some(function(m){return m===w;}))addNb(prev,w);
+        e.via.push(w);prev=w;
+      }
+      addNb(prev,e.b);
+    });
+    conts.forEach(function(e){addNb(e.a,e.b);});
+
+    // Ordering inside columns: by cycle, then a few barycentre sweeps to reduce crossings.
+    function nkey(n){return n.way?n.code:n.comp.code;}
+    cols.forEach(function(col){col.sort(function(x,y){return x.band-y.band||x.sub-y.sub||nkey(x).localeCompare(nkey(y),'uk',{numeric:true})||(x.way?1:0)-(y.way?1:0);});col.forEach(function(n,i){n.pos=i;});});
+    function sweep(list){
+      list.forEach(function(col){
+        col.forEach(function(n){var ns=(nb[n.key]||[]).filter(function(m){return m.sem!==n.sem;});
+          n.bc=ns.length?ns.reduce(function(t,m){return t+m.pos;},0)/ns.length:n.pos;});
+        col.sort(function(x,y){return x.band-y.band||x.sub-y.sub||x.bc-y.bc||x.pos-y.pos;});
+        col.forEach(function(n,i){n.pos=i;});
+      });
+    }
+    for(var it=0;it<4;it++){sweep(cols);sweep(cols.slice().reverse());}
+    // Levels that have something in them (a filter can leave some empty).
+    var levels=[0,1,2].filter(function(b){return cols.some(function(col){return col.some(function(n){return n.band===b;});});});
+    return {sems:sems,cols:cols,nodes:nodes,edges:edges,conts:conts,levels:levels};
+  }
 
   function renderCur(){
     var plans=mapPlans();
@@ -907,6 +970,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     });
     var shown=function(c){return !fset.length||fset.indexOf(c.cycle)>=0;};
 
+    curTools.append(h('button',{type:'button',class:'btn',title:'Схема на альбомний аркуш A4 — для друку або вставлення у Word (Вставлення → Рисунки)',
+      onclick:function(){exportCurSvg(plan,comps,links,byCode,shown);}},'Завантажити SVG (A4)'));
     // Link editing for signed-in editors: click the prerequisite, then the dependent component.
     if(S.canWrite){
       curTools.append(h('button',{type:'button',class:'btn'+(S.cEdit?' pri':''),'aria-pressed':String(!!S.cEdit),
@@ -914,58 +979,7 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     }else S.cEdit=false;
     curWrap.classList.toggle('editing',!!S.cEdit);
 
-    // Nodes: one card per semester part of a component (a two-semester course gets two cards).
-    var sems=planSems(plan),cols=[];
-    for(var s=1;s<=sems;s++)cols.push([]);
-    var nodes={};
-    comps.forEach(function(c){
-      if(!shown(c))return;
-      c.parts.forEach(function(p,i){
-        if(p.sem<1||p.sem>sems)return;
-        var n={key:c.code+'@'+p.sem,comp:c,part:p,idx:i,sem:p.sem,band:CYCLE_ORDER.indexOf(c.cycle)};
-        nodes[n.key]=n;cols[p.sem-1].push(n);
-      });
-    });
-    // A link goes from the latest part of A before the first part of B that comes after A.
-    function endpoints(l){
-      var a=byCode[l.from],b=byCode[l.to];if(!a||!b||!shown(a)||!shown(b))return null;
-      var bp=b.parts.filter(function(p){return p.sem>a.parts[0].sem;})[0]||b.parts[b.parts.length-1];
-      var ap=a.parts.filter(function(p){return p.sem<bp.sem;}).pop()||a.parts[0];
-      var x=nodes[l.from+'@'+ap.sem],y=nodes[l.to+'@'+bp.sem];
-      return x&&y?[x,y]:null;
-    }
-    var edges=[];
-    links.forEach(function(l){var e=endpoints(l);if(e)edges.push({link:l,a:e[0],b:e[1],key:linkKey(l)});});
-    var conts=[];
-    Object.keys(nodes).forEach(function(k){var n=nodes[k];if(n.idx>0){var prev=nodes[n.comp.code+'@'+n.comp.parts[n.idx-1].sem];if(prev)conts.push({a:prev,b:n});}});
-    // A link that skips semesters runs through a gap between cards in every semester it passes ("waypoint");
-    // links from one card share their waypoints, so they travel as a bundle until they part.
-    var nb={};
-    function addNb(x,y){(nb[x.key]||(nb[x.key]=[])).push(y);(nb[y.key]||(nb[y.key]=[])).push(x);}
-    edges.forEach(function(e){
-      e.via=[];var prev=e.a;
-      for(var s=e.a.sem+1;s<e.b.sem;s++){
-        var k='~'+e.a.key+'>'+s,w=nodes[k];
-        if(!w){w=nodes[k]={key:k,way:true,sem:s,band:Math.min(e.a.band,e.b.band),code:e.a.comp.code};cols[s-1].push(w);}
-        if(!(nb[prev.key]||[]).some(function(m){return m===w;}))addNb(prev,w);
-        e.via.push(w);prev=w;
-      }
-      addNb(prev,e.b);
-    });
-    conts.forEach(function(e){addNb(e.a,e.b);});
-
-    // Ordering inside columns: by cycle, then a few barycentre sweeps to reduce crossings.
-    function nkey(n){return n.way?n.code:n.comp.code;}
-    cols.forEach(function(col){col.sort(function(x,y){return x.band-y.band||nkey(x).localeCompare(nkey(y),'uk',{numeric:true})||(x.way?1:0)-(y.way?1:0);});col.forEach(function(n,i){n.pos=i;});});
-    function sweep(list){
-      list.forEach(function(col){
-        col.forEach(function(n){var ns=(nb[n.key]||[]).filter(function(m){return m.sem!==n.sem;});
-          n.bc=ns.length?ns.reduce(function(t,m){return t+m.pos;},0)/ns.length:n.pos;});
-        col.sort(function(x,y){return x.band-y.band||x.bc-y.bc||x.pos-y.pos;});
-        col.forEach(function(n,i){n.pos=i;});
-      });
-    }
-    for(var it=0;it<4;it++){sweep(cols);sweep(cols.slice().reverse());}
+    var M=curModel(plan,comps,links,byCode,shown),sems=M.sems,cols=M.cols,edges=M.edges,conts=M.conts,levels=M.levels;
 
     // Selection: the chain of prerequisites (up) and dependents (down) of the chosen component.
     var anc={},desc={};
@@ -978,11 +992,13 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       var all=0,part=0,ex=0,cr=0,wk=0;
       comps.forEach(function(c){c.parts.forEach(function(p){if(p.sem!==sem)return;var v=Number(p.credits)||0;all+=v;
         if(shown(c)){part+=v;if(p.control==='exam')ex++;if(p.control==='credit')cr++;if(p.work)wk++;}});});
-      var colEl=h('div',{class:'cur-col'},
-        h('div',{class:'cur-ch'+(y===cur?' cur-now':'')},h('b',null,sem+' семестр'),
+      grid.append(h('div',{class:'cur-ch'+(y===cur?' cur-now':''),style:'grid-row:1;grid-column:'+sem},h('b',null,sem+' семестр'),
           h('span',null,course+' курс · '+yl(y)),
           h('span',null,(fset.length?part+' з '+all:all)+' кр. · '+ex+' екз. · '+cr+' зал.'+(wk?' · '+wk+' курс.':''))));
+      var colEls={};
+      levels.forEach(function(b,li){colEls[b]=h('div',{class:'cur-col',style:'grid-row:'+(3+2*li)+';grid-column:'+sem});grid.append(colEls[b]);});
       col.forEach(function(n){
+        var colEl=colEls[n.band];
         if(n.way){var gap=h('div',{class:'cur-way','aria-hidden':'true'});cardEls[n.key]=gap;colEl.append(gap);return;}
         var c=n.comp,p=n.part,cls='cc-card';
         if(S.cSel){cls+=c.code===S.cSel?' sel':anc[c.code]?' anc':desc[c.code]?' desc':' dim';}
@@ -1001,8 +1017,8 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
           opts.length?h('span',{class:'cc-o'},h('ul',null,opts.map(function(o){return h('li',null,o.subject);}))):null);
         cardEls[n.key]=el;colEl.append(el);
       });
-      grid.append(colEl);
     });
+    levels.forEach(function(b,li){grid.append(h('div',{class:'cur-lv',style:'grid-row:'+(2+2*li)},CUR_LEVELS[b]));});
     var svgEl=svg('svg',{class:'cur-svg','aria-hidden':'true'});
     grid.append(svgEl);
     var keepX=curScroll.scrollLeft;
@@ -1014,6 +1030,53 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
     renderCurInfo(plan,data,byCode,links,anc,desc);
     renderCurLegend(links);
     renderCurReview(plan,links,byCode);
+  }
+
+  // Geometry of the arrows for given card boxes {l,r,t,b}: ports spread along the card edges (outgoing on the right,
+  // incoming on the left, ordered by the height of the next point of each line), links through waypoints.
+  // Returns path data and, for each link, the arrow tip {x, y} and its direction (1 — to the right, -1 — to the left).
+  function routeLinks(edges,conts,box,o){
+    var out={},inn={};
+    edges.forEach(function(e){
+      var same=e.a.sem===e.b.sem;
+      e.n1=e.via.length?e.via[0]:e.b;e.n2=e.via.length?e.via[e.via.length-1]:e.a;e.y1=e.y2=null;
+      (out[e.a.key]||(out[e.a.key]=[])).push({e:e,end:1,o:e.n1});
+      (same?(out[e.b.key]||(out[e.b.key]=[])):(inn[e.b.key]||(inn[e.b.key]=[]))).push({e:e,end:2,o:e.n2});
+    });
+    function mid(k){var b=box[k];return b?(b.t+b.b)/2:0;}
+    function spread(list,k){
+      var b=box[k];if(!b)return;
+      list.sort(function(x,y){return mid(x.o.key)-mid(y.o.key)||(x.o.key<y.o.key?-1:1);});
+      // Lines that share the next waypoint (a bundle) share one port.
+      var groups=[];list.forEach(function(x){var g=groups[groups.length-1];if(g&&g.o===x.o&&x.o.way)g.items.push(x);else groups.push({o:x.o,items:[x]});});
+      var n=groups.length,top=b.t+Math.min(o.pad,(b.b-b.t)/4),bot=b.b-Math.min(o.pad,(b.b-b.t)/4);
+      groups.forEach(function(g,i){var y=n===1?(b.t+b.b)/2:top+(bot-top)*i/(n-1);g.items.forEach(function(x){x.e['y'+x.end]=y;});});
+    }
+    Object.keys(out).forEach(function(k){spread(out[k],k);});
+    Object.keys(inn).forEach(function(k){spread(inn[k],k);});
+    function curve(x1,y1,x2,y2){var dx=Math.max(o.maxDx/7.5,Math.min(o.maxDx,(x2-x1)/2));return ' C'+(x1+dx)+' '+y1+','+(x2-dx)+' '+y2+','+x2+' '+y2;}
+    var res={conts:[],edges:[]};
+    conts.forEach(function(e){
+      var a=box[e.a.key],b=box[e.b.key];if(!a||!b)return;
+      res.conts.push({e:e,d:'M'+a.r+' '+mid(e.a.key)+curve(a.r,mid(e.a.key),b.l,mid(e.b.key))});
+    });
+    edges.forEach(function(e){
+      var a=box[e.a.key],b=box[e.b.key];if(!a||!b)return;
+      var d,y1=e.y1!=null?e.y1:mid(e.a.key),y2=e.y2!=null?e.y2:mid(e.b.key);
+      if(e.a.sem===e.b.sem){
+        // Same semester: a loop along the right side of the column.
+        var x=Math.max(a.r,b.r)+o.loop;
+        d='M'+a.r+' '+y1+' C'+x+' '+y1+','+x+' '+y2+','+(b.r+1)+' '+y2;
+        res.edges.push({e:e,d:d,x:b.r,y:y2,dir:-1});
+      }else{
+        // Through the waypoints: across each skipped semester in the gap between its cards.
+        var px=a.r,py=y1;d='M'+px+' '+py;
+        e.via.forEach(function(w){var wb=box[w.key];if(!wb)return;var wy=(wb.t+wb.b)/2;d+=curve(px,py,wb.l,wy)+' L'+wb.r+' '+wy;px=wb.r;py=wy;});
+        d+=curve(px,py,b.l-1,y2);
+        res.edges.push({e:e,d:d,x:b.l,y:y2,dir:1});
+      }
+    });
+    return res;
   }
 
   // Arrows: right edge of the prerequisite card → left edge of the dependent; ports spread along the card edges.
@@ -1030,52 +1093,20 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
         svg('path',{d:'M0 0 L8 4 L0 8 z',class:'ah'+(t?' ah-'+t:'')})));
     });
     svgEl.append(defs);
-    // Ports: outgoing on the right edge, incoming on the left, ordered by the height of the next point of each line.
-    var out={},inn={};
-    CV.edges.forEach(function(e){
-      var same=e.a.sem===e.b.sem;
-      e.n1=e.via.length?e.via[0]:e.b;e.n2=e.via.length?e.via[e.via.length-1]:e.a;
-      (out[e.a.key]||(out[e.a.key]=[])).push({e:e,end:1,o:e.n1});
-      (same?(out[e.b.key]||(out[e.b.key]=[])):(inn[e.b.key]||(inn[e.b.key]=[]))).push({e:e,end:2,o:e.n2});
-    });
-    function mid(k){var b=box[k];return b?(b.t+b.b)/2:0;}
-    function spread(list,k){
-      var b=box[k];if(!b)return;
-      list.sort(function(x,y){return mid(x.o.key)-mid(y.o.key)||(x.o.key<y.o.key?-1:1);});
-      // Lines that share the next waypoint (a bundle) share one port.
-      var groups=[];list.forEach(function(x){var g=groups[groups.length-1];if(g&&g.o===x.o&&x.o.way)g.items.push(x);else groups.push({o:x.o,items:[x]});});
-      var n=groups.length,top=b.t+Math.min(10,(b.b-b.t)/4),bot=b.b-Math.min(10,(b.b-b.t)/4);
-      groups.forEach(function(g,i){var y=n===1?(b.t+b.b)/2:top+(bot-top)*i/(n-1);g.items.forEach(function(x){x.e['y'+x.end]=y;});});
-    }
-    Object.keys(out).forEach(function(k){spread(out[k],k);});
-    Object.keys(inn).forEach(function(k){spread(inn[k],k);});
-    function curve(x1,y1,x2,y2){var dx=Math.max(12,Math.min(90,(x2-x1)/2));return ' C'+(x1+dx)+' '+y1+','+(x2-dx)+' '+y2+','+x2+' '+y2;}
+    var R=routeLinks(CV.edges,CV.conts,box,{loop:24,maxDx:90,pad:10});
     var sel=S.cSel,anc=CV.anc,desc=CV.desc;
     CV.paths={};
-    CV.conts.forEach(function(e){
-      var a=box[e.a.key],b=box[e.b.key];if(!a||!b)return;
-      svgEl.append(svg('path',{class:'ln cont'+(sel&&e.a.comp.code!==sel?' fade':''),d:'M'+a.r+' '+mid(e.a.key)+curve(a.r,mid(e.a.key),b.l,mid(e.b.key))}));
+    R.conts.forEach(function(r){
+      svgEl.append(svg('path',{class:'ln cont'+(sel&&r.e.a.comp.code!==sel?' fade':''),d:r.d}));
     });
     var drawn=[];
-    CV.edges.forEach(function(e){
-      var a=box[e.a.key],b=box[e.b.key];if(!a||!b)return;
-      var l=e.link,cls='ln'+(l.draft?' draft':'')+(l.doubt?' doubt':''),mk=l.doubt?'ah-doubt':'ah',rank=l.doubt?1:0;
+    R.edges.forEach(function(r){
+      var e=r.e,l=e.link,cls='ln'+(l.draft?' draft':'')+(l.doubt?' doubt':''),mk=l.doubt?'ah-doubt':'ah',rank=l.doubt?1:0;
       if(sel){
         var inUp=(l.to===sel||anc[l.to])&&anc[l.from],inDown=(l.from===sel||desc[l.from])&&desc[l.to];
         if(inUp){cls+=' anc';mk='ah-anc';rank=2;}else if(inDown){cls+=' desc';mk='ah-desc';rank=2;}else{cls+=' fade';rank=-1;}
       }
-      var d,y1=e.y1!=null?e.y1:mid(e.a.key),y2=e.y2!=null?e.y2:mid(e.b.key);
-      if(e.a.sem===e.b.sem){
-        // Same semester: a loop along the right side of the column.
-        var x=Math.max(a.r,b.r)+24;
-        d='M'+a.r+' '+y1+' C'+x+' '+y1+','+x+' '+y2+','+(b.r+1)+' '+y2;
-      }else{
-        // Through the waypoints: across each skipped semester in the gap between its cards.
-        var px=a.r,py=y1;d='M'+px+' '+py;
-        e.via.forEach(function(w){var wb=box[w.key];if(!wb)return;var wy=(wb.t+wb.b)/2;d+=curve(px,py,wb.l,wy)+' L'+wb.r+' '+wy;px=wb.r;py=wy;});
-        d+=curve(px,py,b.l-1,y2);
-      }
-      var p=svg('path',{class:cls,d:d,'marker-end':'url(#'+mk+')'});
+      var p=svg('path',{class:cls,d:r.d,'marker-end':'url(#'+mk+')'});
       p.append(svg('title',null,l.from+' → '+l.to+(l.draft?' (на звірці)':'')+(l.doubt?': '+l.doubt:'')));
       CV.paths[e.key]={el:p,mk:mk};
       drawn.push({p:p,rank:rank});
@@ -1092,6 +1123,123 @@ button.tchip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset
       p.el.classList.toggle('hl',hl);p.el.setAttribute('marker-end','url(#'+(hl?'ah-hl':p.mk)+')');
       if(hl)p.el.parentNode.append(p.el);
     });
+  }
+  // ---- SVG for print / Word: the same scheme laid out on a landscape A4 page, plain SVG without CSS or markers ----
+  var EXP_COLORS={zp:'#64748B',pps:'#2C5BA6',ppop:'#167A64',vsu:'#A86A12',vss:'#7447BD'};
+  function mixWhite(hex,k){var n=parseInt(hex.slice(1),16),c=[n>>16,(n>>8)&255,n&255].map(function(v){return Math.round(255-(255-v)*k);});
+    return '#'+c.map(function(v){return ('0'+v.toString(16)).slice(-2);}).join('');}
+  function wrapText(text,font,width,maxLines){
+    var words=String(text||'').split(/\s+/).filter(Boolean),lines=[],line='';
+    words.forEach(function(w){var t=line?line+' '+w:w;if(tw(t,font)<=width||!line)line=t;else{lines.push(line);line=w;}});
+    if(line)lines.push(line);
+    if(lines.length>maxLines){lines=lines.slice(0,maxLines);var last=lines[maxLines-1];while(last&&tw(last+'…',font)>width)last=last.slice(0,-1);lines[maxLines-1]=last.replace(/\s+$/,'')+'…';}
+    return lines;
+  }
+  function exportCurSvg(plan,comps,links,byCode,shown){
+    var M=curModel(plan,comps,links,byCode,shown);
+    var FF='Arial, Helvetica, sans-serif';
+    var PW=1123,PH=794,MG=28;                     // A4 landscape at 96 dpi; margins ≈ 7.5 mm
+    var GAP=26,PAD=4,ACC=3,CODE=9.5,NAME=9,LH=10.6,HEAD=36,COURSE=15,LEG=22;   // ≈ 7 pt text
+    var n=M.cols.length,AW=PW-2*MG,AH=PH-2*MG-LEG;
+    var COLW=Math.min(150,(AW-30-(n-1)*GAP)/n);
+    var fCode='bold '+CODE+'px '+FF,fName=NAME+'px '+FF,fMeta=(CODE-1)+'px '+FF;
+    var y0=COURSE+HEAD,box,cards;
+    // Three levels (as in the OPP) one under another; inside a level — columns of cards, a waypoint of a long link
+    // adds one gap. Free height of the page goes into the gaps between cards.
+    var LVH=20,lvTops=[];
+    function layout(cgap){
+      box={};cards=[];lvTops=[];
+      var top=y0;
+      M.levels.forEach(function(lv){
+        lvTops.push(top);top+=LVH;
+        var bottom=top;
+        M.cols.forEach(function(col,ci){
+          var x=ci*(COLW+GAP),y=top;
+          col.forEach(function(nd){
+            if(nd.band!==lv)return;
+            if(nd.way){box[nd.key]={l:x,r:x+COLW,t:y,b:y};y+=cgap;return;}
+            var c=nd.comp,p=nd.part;
+            var code=c.code+(c.parts.length>1?' ('+(nd.idx+1)+'/'+c.parts.length+')':'');
+            var meta=[p.credits!=null?p.credits+' кр':null,p.control==='exam'?'Екз':p.control==='credit'?'Зал':null,p.work==='paper'?'КР':p.work==='project'?'КП':null].filter(Boolean).join(' · ');
+            // Credits and control go to the right of the code, or onto a line of their own when they do not fit.
+            var own=meta&&tw(code,fCode)+tw(meta,fMeta)+8>COLW-ACC-PAD*2;
+            var lines=wrapText(c.name,fName,COLW-ACC-PAD*2,4);
+            var h=PAD+CODE+2+lines.length*LH+(own?LH:0)+PAD-1;
+            box[nd.key]={l:x,r:x+COLW,t:y,b:y+h};
+            cards.push({n:nd,x:x,y:y,h:h,lines:lines,code:code,meta:meta,own:own});
+            y+=h+cgap;
+          });
+          bottom=Math.max(bottom,y);
+        });
+        top=bottom+4;
+      });
+      return top;
+    }
+    var H=layout(7);
+    // Number of gaps in the tallest column of every level: how many gaps share the free height.
+    var slots=M.levels.reduce(function(t,lv){return t+Math.max.apply(null,M.cols.map(function(col){return col.filter(function(nd){return nd.band===lv;}).length;}));},0);
+    if(H<AH)H=layout(Math.min(24,7+(AH-H)/Math.max(1,slots)));
+    var W=n*(COLW+GAP)-GAP+30;
+    var k=Math.min(1,AW/W,AH/H);
+    var root=svg('svg',{width:'297mm',height:'210mm',viewBox:'0 0 '+PW+' '+PH});
+    root.append(svg('rect',{x:0,y:0,width:PW,height:PH,fill:'#FFFFFF'}));
+    var g=svg('g',{transform:'translate('+(MG+(AW-W*k)/2+15*k).toFixed(1)+','+MG+') scale('+k.toFixed(4)+')'});
+    root.append(g);
+    // Course and semester headers.
+    for(var c=1;c<=Math.ceil(M.sems/2);c++){
+      var cx0=(2*c-2)*(COLW+GAP),cx1=Math.min(2*c-1,M.sems-1)*(COLW+GAP)+COLW;
+      g.append(svg('text',{x:(cx0+cx1)/2,y:10,'text-anchor':'middle','font-family':FF,'font-size':10,'font-weight':'bold','fill':'#18202C'},['I','II','III','IV','V','VI'][c-1]+' курс'));
+      g.append(svg('line',{x1:cx0,y1:COURSE,x2:cx1,y2:COURSE,stroke:'#18202C','stroke-width':0.8}));
+    }
+    M.cols.forEach(function(col,ci){
+      var sem=ci+1,x=ci*(COLW+GAP),cr=0;
+      comps.forEach(function(cc){cc.parts.forEach(function(p){if(p.sem===sem&&shown(cc))cr+=Number(p.credits)||0;});});
+      g.append(svg('text',{x:x+COLW/2,y:COURSE+14,'text-anchor':'middle','font-family':FF,'font-size':10,'font-weight':'bold','fill':'#18202C'},sem+' семестр'));
+      g.append(svg('text',{x:x+COLW/2,y:COURSE+26,'text-anchor':'middle','font-family':FF,'font-size':8.5,'fill':'#5C6676'},cr+' кредитів ЄКТС'));
+    });
+    // Level separators: a dashed line across the scheme with the level title, as in the OPP.
+    M.levels.forEach(function(lv,i){
+      var ly=lvTops[i]+14,xr=n*(COLW+GAP)-GAP+20;
+      g.append(svg('line',{x1:-10,y1:ly,x2:xr,y2:ly,stroke:'#18202C','stroke-width':0.9,'stroke-dasharray':'5 4'}));
+      g.append(svg('text',{x:xr/2,y:ly-3,'text-anchor':'middle','font-family':FF,'font-size':8.5,'font-style':'italic','font-weight':'bold',fill:'#18202C'},CUR_LEVELS[lv].toUpperCase()));
+    });
+    // Arrows under the cards' borders, arrowheads as triangles (Word ignores SVG markers).
+    var R=routeLinks(M.edges,M.conts,box,{loop:14,maxDx:GAP*1.6,pad:6});
+    R.conts.forEach(function(r){g.append(svg('path',{d:r.d,fill:'none',stroke:'#9AA3B0','stroke-width':0.9,'stroke-dasharray':'2 2'}));});
+    R.edges.forEach(function(r){
+      var L=5,Wd=2.4,tip=r.x+(r.dir>0?-0.5:0.5);
+      g.append(svg('path',{d:r.d,fill:'none',stroke:'#3C4655','stroke-width':0.8}));
+      g.append(svg('polygon',{points:[tip,r.y,tip-r.dir*L,r.y-Wd,tip-r.dir*L,r.y+Wd].map(function(v,i){return v.toFixed(1)+(i%2?' ':',');}).join('').trim(),fill:'#3C4655'}));
+    });
+    cards.forEach(function(cd){
+      var c=cd.n.comp,col=EXP_COLORS[c.cycle]||'#64748B',tx=cd.x+ACC+PAD,base=cd.y+PAD+CODE-1;
+      g.append(svg('rect',{x:cd.x,y:cd.y,width:COLW,height:cd.h,rx:3,fill:mixWhite(col,0.08),stroke:mixWhite(col,0.6),'stroke-width':0.8}));
+      g.append(svg('rect',{x:cd.x,y:cd.y,width:ACC,height:cd.h,fill:col}));
+      g.append(svg('text',{x:tx,y:base,'font-family':FF,'font-size':CODE,'font-weight':'bold',fill:col},cd.code));
+      if(cd.meta&&!cd.own)g.append(svg('text',{x:cd.x+COLW-PAD,y:base,'text-anchor':'end','font-family':FF,'font-size':CODE-1,fill:'#5C6676'},cd.meta));
+      var t=svg('text',{'font-family':FF,'font-size':NAME,fill:'#18202C'});
+      cd.lines.forEach(function(line,i){t.append(svg('tspan',{x:tx,y:(base+3+LH*(i+1)-2).toFixed(1)},line));});
+      g.append(t);
+      if(cd.meta&&cd.own)g.append(svg('text',{x:tx,y:(base+3+LH*(cd.lines.length+1)-2).toFixed(1),'font-family':FF,'font-size':CODE-1,fill:'#5C6676'},cd.meta));
+    });
+    // Legend under the scheme (page units).
+    var lx=MG,ly=PH-MG-4,lg=svg('g',{'font-family':FF,'font-size':8.5,fill:'#18202C'});
+    ['zp','pps','ppop','vsu','vss'].forEach(function(cy){
+      if(!comps.some(function(cc){return cc.cycle===cy&&shown(cc);}))return;
+      var label=CYCLES[cy].short+' — '+CYCLES[cy].name.toLowerCase();
+      lg.append(svg('rect',{x:lx,y:ly-7,width:8,height:8,rx:1.5,fill:mixWhite(EXP_COLORS[cy],0.08),stroke:EXP_COLORS[cy],'stroke-width':1}));
+      lg.append(svg('text',{x:lx+11,y:ly},label));
+      lx+=11+tw(label,'8.5px '+FF)+14;
+    });
+    lg.append(svg('text',{x:lx,y:ly,fill:'#5C6676'},'Екз — екзамен, Зал — залік, КР — курсова робота'));
+    root.append(lg);
+    // Coordinates rounded to 0.01 px: a shorter, readable file.
+    var xml='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(root).replace(/(\d+\.\d\d)\d+/g,'$1');
+    var blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Структурно-логічна_схема_план_'+plan.year+'.svg';
+    document.body.append(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    return xml;
   }
   var curResize=null;
   window.addEventListener('resize',function(){clearTimeout(curResize);curResize=setTimeout(function(){if(S.mode==='plan')drawLinks();},120);});
