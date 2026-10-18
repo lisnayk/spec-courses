@@ -1,6 +1,7 @@
 // Vercel serverless function: reads and writes data/courses.json in the GitHub repo.
 // GET  /api/data -> current document
-// POST /api/data -> { type: 'setSlot' | 'deleteSlot' | 'setPlan', ... } -> new document (one commit per change)
+// POST /api/data -> { type: 'setSlot' | 'deleteSlot' | 'moveOption' | 'setPlan' | 'setComponents' | 'setLink' | 'deleteLink', ... }
+//                  -> new document (one commit per change)
 import { applyOp, ValidationError } from '../lib/store.js';
 import { authConfig, authorSuffix, authorTrailer, canEdit, currentUser } from '../lib/auth.js';
 
