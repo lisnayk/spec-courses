@@ -438,6 +438,12 @@
           "teacher": "Кудін О.В.",
           "moodle": "9295",
           "state": "green"
+        },
+        {
+          "subject": "Бази геоданних",
+          "teacher": "",
+          "moodle": "",
+          "state": ""
         }
       ]
     },
