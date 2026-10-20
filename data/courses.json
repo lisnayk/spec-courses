@@ -404,6 +404,12 @@
           "teacher": "Кривохата А.Г.",
           "moodle": "18763",
           "state": ""
+        },
+        {
+          "subject": "Інженерія harness",
+          "teacher": "Лісняк",
+          "moodle": "",
+          "state": "yellow"
         }
       ]
     },
