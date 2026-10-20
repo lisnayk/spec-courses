@@ -708,7 +708,7 @@
           "subject": "Інженерія harness",
           "teacher": "Лісняк А.О.",
           "moodle": "18738",
-          "state": "yellow"
+          "state": "green"
         },
         {
           "subject": "Програмування мовою Python",
@@ -720,7 +720,7 @@
           "subject": "Табличні процесори для аналізу даних",
           "teacher": "Кривохата А.Г.",
           "moodle": "18764",
-          "state": "yellow"
+          "state": "green"
         },
         {
           "subject": "Автоматне програмування",
@@ -738,7 +738,7 @@
           "subject": "Функціональне і логічне програмування",
           "teacher": "Безверхий А.І.",
           "moodle": "8635",
-          "state": ""
+          "state": "green"
         }
       ]
     },
