@@ -403,19 +403,19 @@
           "subject": "Технології обробки природної мови",
           "teacher": "Кривохата А.Г.",
           "moodle": "18763",
-          "state": ""
+          "state": "green"
         },
         {
           "subject": "Інженерія harness",
           "teacher": "Лісняк А.О.",
           "moodle": "18738",
-          "state": "yellow"
+          "state": "green"
         },
         {
           "subject": "Геоінформаційні системи",
           "teacher": "Мильцев О.М.",
-          "moodle": "",
-          "state": ""
+          "moodle": "134830",
+          "state": "green"
         }
       ]
     },
