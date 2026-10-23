@@ -453,25 +453,25 @@
       "order": 8,
       "label": "ВСС 8",
       "credits": 6,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Прикладні задачі бізнес-аналізу даних",
           "teacher": "Горбенко В.І.",
           "moodle": "6097",
-          "state": ""
+          "state": "green"
         },
         {
           "subject": "Основи Kubernetes",
           "teacher": "Лісняк А.О.",
           "moodle": "17130",
-          "state": ""
+          "state": "green"
         },
         {
           "subject": "Технології Інтернет речей",
           "teacher": "Мухін В.В.",
           "moodle": "15708",
-          "state": ""
+          "state": "green"
         }
       ]
     },
