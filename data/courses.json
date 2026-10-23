@@ -674,7 +674,7 @@
       "order": 1,
       "label": "ВКС 1",
       "credits": 3,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Візуальні мови програмування",
