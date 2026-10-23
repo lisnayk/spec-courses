@@ -369,7 +369,7 @@
       "order": 5,
       "label": "ВСС 5",
       "credits": 4,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Програмування комп'ютерної графіки у веб",
