@@ -534,7 +534,7 @@
       "order": 3,
       "label": "ВКС 3",
       "credits": 4,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Комп'ютерне моделювання засобами Python",
