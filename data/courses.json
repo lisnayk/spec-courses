@@ -425,7 +425,7 @@
       "order": 7,
       "label": "ВСС 7",
       "credits": 6,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Корпоративні технології Java",
@@ -442,8 +442,8 @@
         {
           "subject": "Бази геоданих та картографічні веб-сервіси",
           "teacher": "Мильцев О.М.",
-          "moodle": "",
-          "state": ""
+          "moodle": "134835",
+          "state": "green"
         }
       ]
     },
