@@ -562,25 +562,25 @@
       "order": 4,
       "label": "ВКС 4",
       "credits": 6,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "JavaScript фреймворки",
           "teacher": "Кривий Я.В.",
           "moodle": "15652",
-          "state": ""
+          "state": "green"
         },
         {
           "subject": "Технології Big Data",
           "teacher": "Лимаренко Ю.О.",
           "moodle": "17871",
-          "state": ""
+          "state": "green"
         },
         {
           "subject": "Нейронні мережі",
           "teacher": "Кудін О.В.",
           "moodle": "9512",
-          "state": ""
+          "state": "green"
         }
       ]
     },
