@@ -397,7 +397,7 @@
       "order": 6,
       "label": "ВСС 6",
       "credits": 4,
-      "status": "warn",
+      "status": "approved",
       "options": [
         {
           "subject": "Технології обробки природної мови",
